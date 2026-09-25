@@ -3,6 +3,14 @@ human_signoff_pending: true
 review_meaning: File-level source/license/transformation audit only; not legal approval, hardware proof
   or human DCO.
 files:
+- path: tests/host/test_memory_routes.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original regression tests; repository LICENSE; human DCO pending.
+  rights_holders: [Project contributors]
+  changes: Ensure NAND route removes only irrelevant RAM-only staging blockers.
+  dependencies: [scripts/audit_loader_memory.py]
+  review_status: reviewed
 - path: scripts/test_image.py
   kind: new
   license: Apache-2.0

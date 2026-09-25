@@ -35,7 +35,19 @@ TRACE = [
 ]
 
 
-def analyze(sdk, audit_path, objdump):
+def route_requirements(route):
+    if route not in {"all", "nand-fit"}:
+        raise ValueError("unsupported boot route")
+    result = ["No reproduced source/config-to-loader build receipt; current source can differ from linked object.",
+              "Reserved heap consumers, PBP state, active display/USB/DMA and SRAM aliases not fully bounded.",
+              "Recovery after an unbootable application is not verified."]
+    if route == "all":
+        result.append("RAM-only staging and compatible RAM FIT executor are not verified.")
+    return result
+
+
+def analyze(sdk, audit_path, objdump, route="all"):
+    blockers = route_requirements(route)
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
     if audit["audit_status"] != "PASS" or not audit["loader_comparison"]["exact_match"]:
         raise ValueError("matching loader static audit required")
@@ -126,11 +138,20 @@ def analyze(sdk, audit_path, objdump):
     disassembly = {}
     for name in ("do_ram_boot", "boot_app", "SystemInit", "aic_get_time_us", "heap_init",
                  "aic_get_boot_args", "of_fdt_dt_init_bare_nornand", "spl_load_fit_image",
-                 "spl_load_simple_fit", "exec_cmd_write_input_data"):
+                 "spl_load_simple_fit", "exec_cmd_write_input_data", "hal_dma_init",
+                 "hal_dma_chan_stop", "hal_qspi_master_transfer_sync", "save_boot_params"):
         disassembly[name] = subprocess.check_output(
             [str(objdump), "-d", "--disassemble=" + name, str(elf_path)], text=True)
         if "<" + name + ">:" not in disassembly[name]:
             raise ValueError("required linked function missing: " + name)
+    # Reset_Handler's symbol extent only covers its first jump. Include the
+    # continuation up to __exit rather than silently omitting startup code.
+    begin, end = symbols["Reset_Handler"]["start"], symbols["__exit"]["start"]
+    if not begin < end or end - begin > 4096:
+        raise ValueError("unexpected startup span; manual review required")
+    disassembly["startup_to_exit"] = subprocess.check_output(
+        [str(objdump), "-d", "--start-address=" + hex(begin),
+         "--stop-address=" + hex(end), str(elf_path)], text=True)
     for app, candidate in audit["candidates"].items():
         file_spans = candidate.get("file_spans", [])
         if not file_spans:
@@ -139,15 +160,20 @@ def analyze(sdk, audit_path, objdump):
                max(s["end"] for s in file_spans), "FIT external data directly to verified load; no compression/cipher",
                "spl_read through payload execution", [trace[1], trace[3], trace[4]], "dynamic",
                "CPU/QSPI DMA writes, CRC reads, payload executes", "intentional candidate overlap")
-    for name, rule, evidence in [
+    unresolved = [
         ("loader display/USB live state", "heap envelopes extracted, but active bus masters and consumers need closure", [trace[9], trace[15]]),
-        ("RAM-only FIT staging", "no approved address; must hold entire FIT without overlapping loader or destination copy", [trace[13]]),
         ("PBP/TCM/aliases and inherited DMA", "not bounded by tinySPL PT_LOAD; installed hardware mapping and bus masters unknown", [trace[14]]),
         ("optional config DTB", "fixed PSRAM tail destination when config partition exists; DTB-derived size lacks complete range proof. Current user log reports No config partition", [trace[12]]),
-    ]:
+    ]
+    if route == "all":
+        unresolved.append(("RAM-only FIT staging", "no approved address or compatible RAM FIT executor", [trace[13]]))
+    for name, rule, evidence in unresolved:
         region(name, None, None, rule, "potentially live through jump", evidence, "dynamic",
                "loader/PBP/peripherals", "unresolved")
-    return {"schema_version": 1, "status": "BLOCKED", "static_memory_overlap": audit["static_memory_overlap"],
+    return {"schema_version": 1, "status": "BLOCKED", "boot_route": route,
+            "ram_only_staging_required": route != "nand-fit",
+            "route_limits": "nand-fit excludes only host RAM staging; NAND page buffers, DMA and recovery remain in scope",
+            "static_memory_overlap": audit["static_memory_overlap"],
             "ram_ownership": "unverified", "loadable_image": False, "hardware_validation": "pending",
             "input_files": {**inputs, str(map_path): record(map_path.read_bytes())},
             "candidate_bindings": audit["candidates"], "trace": trace, "regions": regions,
@@ -158,9 +184,7 @@ def analyze(sdk, audit_path, objdump):
                             "unknown": ["other bus masters quiesced", "cache/map/TCM runtime state", "exact compiled-source/config receipt", "stack high water"],
                             "probe": "stackless entry before Zephyr __start; no CSR writes; FS-guarded fcsr"},
             "candidate_window_answer": "Cannot exclude every live-buffer/alias overwrite of [0x30080000,0x30100000). Known default-heap envelopes are disjoint; payload writes intentionally target SRAM.",
-            "blockers": ["No reproduced source/config-to-loader build receipt; current source can differ from linked object.",
-                         "Reserved heap consumers, PBP state, active display/USB/DMA and SRAM aliases not fully bounded.",
-                         "RAM staging and recovery after an unbootable application are not verified."]}
+            "blockers": blockers}
 
 
 def main():
@@ -169,10 +193,11 @@ def main():
     parser.add_argument("--audit", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--objdump", type=Path, required=True)
+    parser.add_argument("--route", choices=["all", "nand-fit"], default="all")
     args = parser.parse_args()
     if args.output.exists() or args.output.resolve().is_relative_to(args.sdk.resolve()):
         raise ValueError("new output outside read-only SDK required")
-    result = analyze(args.sdk, args.audit, args.objdump)
+    result = analyze(args.sdk, args.audit, args.objdump, args.route)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"status": result["status"], "output": str(args.output), "blockers": result["blockers"]}))
