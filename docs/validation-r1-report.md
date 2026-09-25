@@ -241,3 +241,5 @@ independent clock measurement, exception recovery and PC/serial capture are
 NOT_RUN. PSRAM, cache maintenance, DMA/display coherency and additional Z1
 peripherals are outside this software evidence. Missing hardware evidence is
 left explicit rather than replaced by more simulated passes.
+
+H0 closure follow-up (2026-09-25): see [closure investigation](bringup/d13x-h0-closure.md). Four clean target builds and FIT roundtrips pass; corrected non-QEMU core MMIO addresses. Dynamic RAM and manual recovery remain BLOCKED, H1 NOT_RUN, loadable_image=false.

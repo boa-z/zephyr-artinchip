@@ -109,3 +109,5 @@ retain their sources and original hashes. No SDK runtime is imported. Human
 license/ownership review and DCO sign-off remain pending. Development uses local
 commits with the supplied repository identity and an accurate Assisted-by trailer;
 no Signed-off-by is generated. No push, release or automatic hardware operation.
+
+H0 closure follow-up (2026-09-25): see [closure investigation](docs/bringup/d13x-h0-closure.md). Four clean target builds and FIT roundtrips pass; corrected non-QEMU core MMIO addresses. Dynamic RAM and manual recovery remain BLOCKED, H1 NOT_RUN, loadable_image=false.

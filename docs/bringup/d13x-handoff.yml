@@ -42,9 +42,9 @@ items:
       path: docs/bringup/d13x-product-artifacts.json
       sha256: 52f6b1f8b67635b8fcbb266523b30cef11de7f09077e64ed97abd458c2a9f5a6
       kind: read-only binary/container inspection
-    required_evidence: Analyze the matching September 24 ELF/map for dynamic RAM and CPU handoff.
-      User reports USB whole-image programming; local packaged SPL and ELF/bin match. Installed hash
-      has not been read back. September 21 mismatch is historical evidence only.
+    required_evidence: Analyze the matching September 24 ELF/map for dynamic RAM and CPU handoff. User
+      reports USB whole-image programming; local packaged SPL and ELF/bin match. Installed hash has not
+      been read back. September 21 mismatch is historical evidence only.
   reference_loader:
     classification: source-derived
     value: Pinned ram_boot.c recognizes AIC headers or uses the FIT loader; boot_app.c resolves the image
@@ -163,12 +163,12 @@ items:
       after hardware access is authorized.
   recovery_and_permission:
     classification: unknown
-    value: User confirms USB programming of the complete image and subsequent main-power restart.
-      User confirms Reset + Boot buttons enter download mode and Aiburn is the tool used.
-      User also permits artinchip-flash as an alternative tool at
-      C:/Users/JCSH/Documents/Tools/artinchip-flash. Exact button timing, Aiburn version and recovery
-      with a non-booting application remain unverified. Tool choice does not establish a validated
-      Zephyr loading route; no board operation was performed in this evidence update.
+    value: User confirms USB programming of the complete image and subsequent main-power restart. User
+      confirms Reset + Boot buttons enter download mode and Aiburn is the tool used. User also permits
+      artinchip-flash as an alternative tool at C:/Users/JCSH/Documents/Tools/artinchip-flash. Exact button
+      timing, Aiburn version and recovery with a non-booting application remain unverified. Tool choice
+      does not establish a validated Zephyr loading route; no board operation was performed in this evidence
+      update.
     status: BLOCKED
     evidence:
     - *id001
@@ -190,8 +190,8 @@ items:
       console_prompt: aic />
     evidence:
     - *id001
-    limits: Earlier watchdog-reset observation; see reported_cold_start for the follow-up. Neither
-      observation establishes Zephyr execution or independent cold-boot/recovery validation.
+    limits: Earlier watchdog-reset observation; see reported_cold_start for the follow-up. Neither observation
+      establishes Zephyr execution or independent cold-boot/recovery validation.
   reported_cold_start:
     classification: observed
     observer: user-supplied pasted transcript; not agent-operated hardware
@@ -215,8 +215,8 @@ items:
     evidence:
     - *id001
     limits: Owner-reported cold start and firmware-reported warm external-pin reset are both retained.
-      The log alone does not determine actual power removal or reset decoder semantics. The local
-      image hash is not installed-flash readback; this is not Zephyr hardware validation.
+      The log alone does not determine actual power removal or reset decoder semantics. The local image
+      hash is not installed-flash readback; this is not Zephyr hardware validation.
     required_evidence: Power-off/on procedure including attached power/debug/serial cables, off interval,
       reset-button use, actual serial settings and a raw transcript.
   product_image_layout:
@@ -249,19 +249,26 @@ items:
       reported_crc: CRC32 verify OK.
       local_audit_status: PASS
       local_audit_report: docs/bringup/d13x-rebuilt-loader-audit.json
-      uart_connector_nets: [UART0_TX_UP/LOG, UART0_RX_UP/LOG, GND]
-      schematic_uart_functions: [GPA_P0/UART0_TX, GPA_P1/UART0_RX]
-      schematic_reset_nets: [RESET, RESETN]
+      uart_connector_nets:
+      - UART0_TX_UP/LOG
+      - UART0_RX_UP/LOG
+      - GND
+      schematic_uart_functions:
+      - GPA_P0/UART0_TX
+      - GPA_P1/UART0_RX
+      schematic_reset_nets:
+      - RESET
+      - RESETN
       schematic_upgrade_control: Update1, annotated as UBOOT forced upgrade
     evidence:
     - *id001
     - *id002
     limits: Schematic nets and local byte audit are not assembled-board continuity, voltage, installed
-      flash readback, dynamic RAM ownership or Zephyr execution evidence. Command-triggered watchdog
-      reset is not an independently controlled cold boot.
-    required_evidence: Raw serial capture and reset/power procedure; board revision and actual UART
-      electrical measurement; matching installed loader memory map or debugger capture; authorized,
-      recoverable Zephyr handoff test.
+      flash readback, dynamic RAM ownership or Zephyr execution evidence. Command-triggered watchdog reset
+      is not an independently controlled cold boot.
+    required_evidence: Raw serial capture and reset/power procedure; board revision and actual UART electrical
+      measurement; matching installed loader memory map or debugger capture; authorized, recoverable Zephyr
+      handoff test.
   usb_whole_image_power_restart:
     classification: observed
     observer: user report plus read-only local file/hash verification
@@ -325,15 +332,32 @@ items:
         conclusion: Not merely a build-date change; no equivalence or installed-state claim.
     evidence:
     - *id002
-    limits: Historical comparison with the September 21 package, superseded for the new package by
-      rebuilt_reference_image. The September 24 build did not match the September 21 SPL. Do not use these
-      ELF symbols to close installed-loader RAM ownership.
+    limits: Historical comparison with the September 21 package, superseded for the new package by rebuilt_reference_image.
+      The September 24 build did not match the September 21 SPL. Do not use these ELF symbols to close
+      installed-loader RAM ownership.
+  h0_closure_20260925:
+    classification: source-derived
+    status: BLOCKED
+    value:
+      static_memory_overlap: pass
+      ram_ownership: unverified
+      candidate_source_head: 53351bb86cec3094c179f0a151336daa2ae95870
+      fit_roundtrip: PASS for bringup/kernel/fpu/handoff_probe
+      cpu_base_correction: Non-QEMU 0x20000000; matching ELF CLIC 0x20800000 and mtime 0x2000bff8
+      recovery_verified: false
+    evidence:
+    - path: docs/bringup/d13x-h0-closure.json
+    - path: docs/bringup/d13x-h0-closure.md
+    - path: docs/bringup/d13x-recovery-plan.md
+    limits: No current source/config build receipt for loader; PBP/alias/live bus-master closure and manual
+      failed-application recovery absent. H1 NOT_RUN.
 local_observation:
   classification: observed
   value: The earlier out/firmware/bootloader path is not the active output layout. Product images and
     a separate loader ELF now located under output/<configuration>/images. The separate loader binary
-    differed from the September 21 package. The rebuilt September 24 package now matches the local
-    loader ELF/bin; see rebuilt_reference_image and usb_whole_image_power_restart. SDK and product
-    files were read only.
+    differed from the September 21 package. The rebuilt September 24 package now matches the local loader
+    ELF/bin; see rebuilt_reference_image and usb_whole_image_power_restart. SDK and product files were
+    read only.
   evidence:
   - *id002
+recovery_verified: false

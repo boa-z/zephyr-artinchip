@@ -4,7 +4,7 @@ Follow-up date: 2026-09-25. No product/SDK file, firmware runtime, reference Zep
 tree or physical hardware was modified. The tool is a software evidence gate,
 not a FIT packager, flash command or hardware acceptance certificate.
 
-## Reproduce
+## Historical reproduction
 
 Run from the zephyr-artinchip root using the existing project Python environment:
 
@@ -96,3 +96,7 @@ Current product SHA-256 is b0062dacbd68e8ef6f6de0c99c7cdc6620e602c5e00e913b454af
 The preserved rebuilt audit refers to historical f2ce05e candidates. New closure
 candidates must have fresh build receipts and a new audit under artifacts/h0-current.
 Static disjointness is static_memory_overlap=pass, never ram_ownership=verified.
+
+For current clean candidates and FIT/memory tooling, use
+[d13x-h0-closure.md](d13x-h0-closure.md). Do not use the historical r1-delivery
+command above to close the current candidate gate.

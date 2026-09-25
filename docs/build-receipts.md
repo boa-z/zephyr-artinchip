@@ -89,3 +89,7 @@ Local archive roundtrips do not prove GitHub transport. A new remote Windows run
 requires separate push authorization. Linux clean-workspace initialization,
 build and collection remain a prerequisite before a cross-platform delivery
 claim; native Windows success alone does not establish that result.
+
+The H0 handoff_probe application also uses the controlled receipt path and a
+separate build-only tests.yaml. It is not added to the original R1 runtime
+acceptance inventory. See bringup/d13x-h0-closure.md for its current source binding.

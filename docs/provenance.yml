@@ -1072,6 +1072,17 @@ files:
   changes: H0 offline analysis, FIT integrity or stackless diagnostic only.
   dependencies: []
   review_status: reviewed
+- path: docs/bringup/d13x-h0-closure.json
+  kind: new
+  license: Apache-2.0
+  license_basis: Original evidence summary; no SDK code copied; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Bind current clean candidate artifacts and explicit blocked memory/recovery status.
+  dependencies:
+  - scripts/audit_loader.py
+  - scripts/audit_loader_memory.py
+  review_status: reviewed
 handoff_reset_decoder_references:
   usage: Reference-only for docs/bringup/d13x-product-image-evidence.md; no source copied
   license: Apache-2.0 in referenced files
@@ -1104,6 +1115,26 @@ download_tool_references:
     path: C:\Users\JCSH\Documents\Tools\artinchip-flash\Cargo.toml
     sha256: 67c0a4d80ccbf6f357a3b3d44ee010b3a34b5bac983f2a561394b58c7baaf0c5
     scope: Local working-file snapshot; tool and hardware behavior not validated
+  - project: local artinchip-flash read-only source
+    path: C:\Users\JCSH\Documents\Tools\artinchip-flash\src\main.rs
+    sha256: b1e05a7fa5ce9c389f59543da29dc155b37f641de599498e679f49d5118b9234
+    scope: Reference-only command capability audit; no source copied or executable invoked; license not
+      established
+  - project: local artinchip-flash read-only source
+    path: C:\Users\JCSH\Documents\Tools\artinchip-flash\src\device.rs
+    sha256: 08b513543079208e0254788edac8029423ac94f52af6313b830b6d9c3a157943
+    scope: Reference-only command capability audit; no source copied or executable invoked; license not
+      established
+  - project: local artinchip-flash read-only source
+    path: C:\Users\JCSH\Documents\Tools\artinchip-flash\src\official.rs
+    sha256: 4324fc09e46f64058eb8c0fab3c828c1fdc62dad8a9a09c8af7d0b244bfdd852
+    scope: Reference-only command capability audit; no source copied or executable invoked; license not
+      established
+  - project: local artinchip-flash read-only source
+    path: C:\Users\JCSH\Documents\Tools\artinchip-flash\src\protocol\commands.rs
+    sha256: ae77f3686aa9cd25c64d14894b10f3e8be3e5898dd1deaa254ab25f1eb773ff7
+    scope: Reference-only command capability audit; no source copied or executable invoked; license not
+      established
 h0_closure_references:
   usage: Reference-only loader trace, FIT format and CSR definitions; current working-source snapshots
     do not attest matching compiled config. No runtime copied.

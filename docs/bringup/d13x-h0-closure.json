@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED",
+  "hardware_validation": "pending",
+  "loadable_image": false,
+  "recovery_verified": false,
+  "upstream_ready": false,
+  "source_at_build": "53351bb86cec3094c179f0a151336daa2ae95870",
+  "static_memory_overlap": "pass",
+  "ram_ownership": "unverified",
+  "candidates": {
+    "bringup": {
+      "source_at_build": "53351bb86cec3094c179f0a151336daa2ae95870",
+      "elf": {
+        "size": 372476,
+        "sha256": "10d7fc73b902051a03a9233cb245eeec7217cd092381945c551c5d3a9064454f"
+      },
+      "entry": 805830656,
+      "load_spans": [
+        {
+          "start": 805830656,
+          "end": 805865024
+        }
+      ],
+      "file_spans": [
+        {
+          "start": 805830656,
+          "end": 805857400
+        }
+      ],
+      "overlaps": []
+    },
+    "kernel": {
+      "source_at_build": "53351bb86cec3094c179f0a151336daa2ae95870",
+      "elf": {
+        "size": 591872,
+        "sha256": "405d27cbf67d3528876ce80479636a11257260eda7ef8efae7415a5faee2a5eb"
+      },
+      "entry": 805830656,
+      "load_spans": [
+        {
+          "start": 805830656,
+          "end": 805875136
+        }
+      ],
+      "file_spans": [
+        {
+          "start": 805830656,
+          "end": 805863628
+        }
+      ],
+      "overlaps": []
+    },
+    "fpu": {
+      "source_at_build": "53351bb86cec3094c179f0a151336daa2ae95870",
+      "elf": {
+        "size": 590220,
+        "sha256": "41fdfe7741e5a44d133bf12b8ca6472c4b882f161f8daa58eeadf1e021cefaff"
+      },
+      "entry": 805830656,
+      "load_spans": [
+        {
+          "start": 805830656,
+          "end": 805880112
+        }
+      ],
+      "file_spans": [
+        {
+          "start": 805830656,
+          "end": 805864120
+        }
+      ],
+      "overlaps": []
+    },
+    "handoff_probe": {
+      "source_at_build": "53351bb86cec3094c179f0a151336daa2ae95870",
+      "elf": {
+        "size": 319512,
+        "sha256": "5fa7f4e72d74e3e856f631d0b1cd0758141ee41734e97b6093ee66238720594f"
+      },
+      "entry": 805834200,
+      "load_spans": [
+        {
+          "start": 805830656,
+          "end": 805855696
+        }
+      ],
+      "file_spans": [
+        {
+          "start": 805830656,
+          "end": 805849508
+        }
+      ],
+      "overlaps": []
+    }
+  },
+  "artifacts": {
+    "artifacts/h0-current/53351bb/loader-audit.json": {
+      "sha256": "3679c8ad1886af843d65aafb3d25bcef902a131f2deae4e6df5d28387c092b69",
+      "size": 6849
+    },
+    "artifacts/h0-memory/loader-memory-map.json": {
+      "sha256": "308fbd52f1d3718e1cef929587f05bb415984ff98afca7ff378483b36a643518",
+      "size": 93262
+    },
+    "artifacts/h0-current/53351bb/probe-static/report.json": {
+      "sha256": "0127390e787ca6b04658ebbeb6485fac16af81a657e4c29e18f743d606c70d59",
+      "size": 399
+    },
+    "artifacts/h0-current/53351bb/negative-fit-checks.json": {
+      "sha256": "479959260f457728b0ab84e19956ed4187aa0d45cdd159ed3c66372e1cb3be35",
+      "size": 759
+    },
+    "artifacts/h0-fit/53351bb/bringup/roundtrip.json": {
+      "sha256": "f43cf977227bea0706632b3913feaf46b6754e9621e07549a453b140ade272c1",
+      "size": 736
+    },
+    "artifacts/h0-fit/53351bb/kernel/roundtrip.json": {
+      "sha256": "05d6ee53ff133812a677e0e50e373aa5bfbda626c1d24ba051587cc893cdafcf",
+      "size": 736
+    },
+    "artifacts/h0-fit/53351bb/fpu/roundtrip.json": {
+      "sha256": "091d834655a434afed2849308b3ad6b24f65c5e1dc7a4de229dd8ace7596d699",
+      "size": 736
+    },
+    "artifacts/h0-fit/53351bb/handoff_probe/roundtrip.json": {
+      "sha256": "fcea23bbea2c19d206b6bc22fedeb36da91fa596d2530ed63b2cb3393f72508f",
+      "size": 736
+    }
+  },
+  "host_validation": {
+    "tests": 97,
+    "status": "PASS",
+    "log": "artifacts/logs/h0-closure-final-host.log",
+    "lint": "PASS",
+    "provenance": "PASS"
+  }
+}
