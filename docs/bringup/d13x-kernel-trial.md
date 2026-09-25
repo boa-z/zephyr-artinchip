@@ -40,7 +40,7 @@ D13x 目标构建：C:/aic-z0-kernel-window-v2，45728 字节内存，范围
 固定 ELF/BIN profile 的 scripts/package_kernel_trial.py 验证 FIT、地址、
 入口、两张中断表和所有非 OS 字节。原版 PBP、target SPL、updater 与
 分区布局保持不变。源码配置及哈希随实验包保存；未以脏工作区构建冒充
-标准 clean-source release receipt。物理测试尚未进行。
+标准 clean-source release receipt。首轮物理测试已完成，结果为 FAIL，详见下节。
 
 目录：artifacts/z0-kernel-144irq-delivery。
 镜像：D50T_Z0_kernel_144irq.img，SHA-256：
@@ -63,3 +63,41 @@ d1828558837f561edaba52dbd371967e358cb7e6fbcfdeb529142c0ad0eb2520
 manual_experiment_ready=true；hardware_validation=pending；标准候选的
 loadable_image=false 继续保留。默认 SRAM、全中断源、FPU 上下文、频率精度
 和长时间稳定性仍不由本轮自动关闭。
+
+## 首轮实板结果：失败，恢复成功
+
+用户回传日志对应 34236 字节 payload，Zephyr build 839728050444。
+镜像身份由本轮操作上下文关联；串口未回报镜像 SHA-256，不视为独立哈希证明。
+预检 irq_slots=144，PASS，uptime_delta_ms=25，cycle_delta=96849。
+五项测试中 module、owned_memory、thread_semaphore、timeout 通过；
+timer_preemption 在 main.c:106 因 woke=false 失败，耗时 1.017 秒。
+套件 pass=4、fail=1、skip=0，最终 PROJECT EXECUTION FAILED。
+用户确认烧回 RESTORE_original_product.img 恢复正常。
+
+本结果证明启动和所列四项测试在本次运行通过，不满足本轮内核验收。
+预检成功与后续抢占失败并存，不能断言 tick 从未工作，也不能据此确认
+持续中断或抢占可靠。默认 SRAM、全中断源及长期稳定性边界不变。
+
+源码核查：ztest 用例线程优先级为 2，延时 worker 为 1；setup 与用例
+运行上下文不同，setup 成功不代替用例抢占验证。没有证据支持修改优先级
+或延长等待预算来掩盖本次失败。
+
+## 第二轮诊断：保留失败判定
+
+新增 KERNEL-POLL（预检和抢占测试各一条）：reason 为 worker、cycles 或
+iterations；phase=0 表示 worker 尚未记录启动，1 表示已到达 sleep 前，
+2 表示 sleep 已返回。woke 是观察到完成标记的采样值。
+记录当前优先级、cycle_delta 和 tick_delta，D13x 另记录等待前后
+mstatus/mcause。先采样、后打印、最后进行失败清理；无循环内串口打印。
+这些是分时采样，不是原子的硬件快照；mcause 可能是历史 trap 值，
+uptime 可包含计数器推算的 elapsed，tick_delta 不能单独证明中断次数。
+该版本用于缩小根因范围，尚不宣称修复。等待预算和原五项测试保持不变。
+
+第二轮产物：artifacts/z0-kernel-poll-delivery/D50T_Z0_kernel_poll_diag.img。
+SHA-256: df2dc6f3a32bff22a91ea0ffa2fc62bf8128519c0c1825df998968b71ffd20b5。
+目标构建 C:/aic-z0-kernel-window-v3：文件 34700 字节，RAM 46208/65536；
+QEMU C:/aic-z0-kernel-qemu-v2：5/5 通过。三项篡改拒绝检查通过。
+使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
+特别保留两组 KERNEL-POLL/KERNEL-CSR。第一轮包保持不变，勿与第二轮混用。
+打包器当前固定第二轮 ELF/BIN；首轮脚本可在提交 677e289 找到。
+第二轮 hardware_validation=pending，第一轮明确为 FAIL。

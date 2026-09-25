@@ -3,12 +3,36 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/atomic.h>
 #include <zephyr/ztest.h>
+#if defined(CONFIG_SOC_SERIES_D13X)
+#include <zephyr/arch/riscv/csr.h>
+#endif
 
 BUILD_ASSERT(IS_ENABLED(CONFIG_ARTINCHIP_MODULE));
 K_SEM_DEFINE(signal, 0, 1);
 K_THREAD_STACK_DEFINE(worker_stack, 1024);
 static struct k_thread worker_thread;
 static atomic_t observed;
+static atomic_t worker_phase;
+
+struct poll_snapshot {
+	uint32_t cycles;
+	int64_t ticks;
+	uint32_t mstatus;
+	uint32_t mcause;
+};
+
+static struct poll_snapshot poll_snapshot_get(void)
+{
+	struct poll_snapshot result = {0};
+
+#if defined(CONFIG_SOC_SERIES_D13X)
+	result.mstatus = csr_read(mstatus);
+	result.mcause = csr_read(mcause);
+#endif
+	result.cycles = k_cycle_get_32();
+	result.ticks = k_uptime_ticks();
+	return result;
+}
 
 /* A tick-dependent deadline cannot diagnose a stopped tick. Cycle reads do
  * not require timer IRQ delivery; the iteration budget also covers a static
@@ -16,19 +40,37 @@ static atomic_t observed;
  */
 static bool wait_for_worker(void)
 {
-	uint32_t start = k_cycle_get_32();
+	struct poll_snapshot before = poll_snapshot_get();
+	uint32_t start = before.cycles;
+	const char *reason = "iterations";
 	uint32_t budget = k_ms_to_cyc_ceil32(1000);
 
 	for (uint32_t spins = 0; spins < 10000000U; spins++) {
 		if (atomic_get(&observed)) {
-			return true;
+			reason = "worker";
+			break;
 		}
 		if ((uint32_t)(k_cycle_get_32() - start) >= budget) {
+			reason = "cycles";
 			break;
 		}
 		compiler_barrier();
 	}
-	return atomic_get(&observed) != 0;
+	/* Capture before printing or aborting: UART and cleanup can change timing. */
+	struct poll_snapshot after = poll_snapshot_get();
+	bool woke = atomic_get(&observed) != 0;
+	int phase = atomic_get(&worker_phase);
+
+	printk("KERNEL-POLL schema=1 reason=%s woke=%u phase=%d priority=%d "
+	       "tick_delta=%lld cycle_delta=%u\n", reason, (unsigned int)woke, phase,
+	       k_thread_priority_get(k_current_get()),
+	       (long long)(after.ticks - before.ticks), after.cycles - before.cycles);
+#if defined(CONFIG_SOC_SERIES_D13X)
+	printk("KERNEL-CSR before_mstatus=%08x after_mstatus=%08x "
+	       "before_mcause=%08x after_mcause=%08x\n",
+	       before.mstatus, after.mstatus, before.mcause, after.mcause);
+#endif
+	return woke;
 }
 
 static void delayed_worker(void *a, void *b, void *c)
@@ -36,7 +78,9 @@ static void delayed_worker(void *a, void *b, void *c)
 	ARG_UNUSED(a);
 	ARG_UNUSED(b);
 	ARG_UNUSED(c);
+	atomic_set(&worker_phase, 1);
 	k_sleep(K_MSEC(20));
+	atomic_set(&worker_phase, 2);
 	atomic_set(&observed, 1);
 	k_sem_give(&signal);
 }
@@ -50,6 +94,7 @@ static void *kernel_preflight(void)
 	printk("KERNEL-PREFLIGHT begin irq_slots=%u\n", CONFIG_NUM_IRQS);
 	k_sem_reset(&signal);
 	atomic_clear(&observed);
+	atomic_clear(&worker_phase);
 	k_thread_create(&worker_thread, worker_stack, K_THREAD_STACK_SIZEOF(worker_stack),
 			delayed_worker, NULL, NULL, NULL, priority - 1, 0, K_NO_WAIT);
 	bool woke = wait_for_worker();
@@ -74,6 +119,7 @@ ZTEST(artinchip_kernel, test_thread_semaphore)
 {
 	k_sem_reset(&signal);
 	atomic_clear(&observed);
+	atomic_clear(&worker_phase);
 	k_thread_create(&worker_thread, worker_stack, K_THREAD_STACK_SIZEOF(worker_stack),
 			delayed_worker, NULL, NULL, NULL, 1, 0, K_NO_WAIT);
 	zassert_ok(k_sem_take(&signal, K_SECONDS(1)));
@@ -96,6 +142,7 @@ ZTEST(artinchip_kernel, test_timer_preemption)
 
 	k_sem_reset(&signal);
 	atomic_clear(&observed);
+	atomic_clear(&worker_phase);
 	k_thread_create(&worker_thread, worker_stack, K_THREAD_STACK_SIZEOF(worker_stack),
 			delayed_worker, NULL, NULL, NULL, priority - 1, 0, K_NO_WAIT);
 	/* No yield/sleep here: the timer must wake and preempt this thread. */
