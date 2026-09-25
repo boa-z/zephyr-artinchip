@@ -96,6 +96,11 @@ must validate RAM ownership, copied/decompressed spans and CPU/cache handoff.
 
 ## Remaining gates
 
+The follow-up reproducible loader comparison and actual CI transport result are
+recorded in loader-audit.md. The new tool confirms identical executable bytes
+and no overlap with the reference ELF's known static spans; it continues to
+reject the ten-byte identity mismatch and does not close runtime RAM ownership.
+
 This evidence advances H0 but does not close it. Still required: exact board and
 installed loader association; loader/staging/stack/heap/boot-argument/DMA memory
 ownership; accepted download/verification path; CSR/cache/IRQ/power handoff;

@@ -59,9 +59,10 @@ are passed explicitly; module declarations alone do not run tests. QEMU must
 execute all 7 configurations / 23 cases. D13x is 3 build-only configurations and
 zero runtime passes. JSON, xUnit, handler and build logs are retained by Twister.
 `.github/workflows/ci.yml` enforces these downstream gates with no failure bypass;
-the prior remote run 36092052502 failed during cross-drive artifact upload.
-The revised R1 workflow has local archive checks; its remote rerun is pending
-separate push authorization.
+the prior run 36092052502 failed during cross-drive artifact upload. Follow-up
+run 36096131063 passed failure-evidence upload/download verification but failed
+a host-test path comparison. Its local correction and current hardware gates
+are recorded in docs/bringup/loader-audit.md; a successful new remote run is pending.
 
 Interactive sample: `west build -b qemu_riscv32 samples/bringup -d build-qemu`,
 then `west build -d build-qemu -t run`. Expected lines are
@@ -81,6 +82,8 @@ python scripts/package_candidate.py C:/tmp/aic-candidate-bringup artifacts/candi
 Delivery builds require a clean committed module and a new build directory. Repeat
 the controlled build/collection for kernel and fpu with distinct directories.
 See docs/build-receipts.md for source binding, negative probes and evidence ZIPs.
+Use scripts/audit_loader.py for read-only product-SPL identity/static-range checks;
+see docs/bringup/loader-audit.md for its nonzero BLOCKED result and scope limits.
 
 The collector validates ELF/load spans/ABI/ISA/compile flags/input objects/linked
 runtime members and records hashes, source identity, toolchain and patch series.

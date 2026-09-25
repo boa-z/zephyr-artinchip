@@ -929,3 +929,36 @@ files:
   - pyelftools
   review_status: reviewed
   sources: *id006
+- path: scripts/audit_loader.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code; vendor container field layout referenced without copying its runtime.
+  rights_holders:
+  - Project contributors
+  changes: Original read-only AIC.FW integrity, SPL/ELF association and candidate static-overlap audit.
+    Never emits a loadable image or performs hardware access.
+  dependencies:
+  - Python standard library
+  - pyelftools
+  - Existing candidate validators
+  review_status: reviewed
+  sources:
+  - project: boa-w/luban-lite-jc-d50t-rev local read-only reference
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: tools/scripts/mk_image.py
+    sha256: d2bd5463dd7a26c8174b16072df7dd5778e1d1d7f7be8c8a2419b52747e08931
+    working_file_sha256: eef54b6655833c567fae698c04afe423b888779da85d9d46d9e81ab7584621bd
+    comparison: Committed and working contents match after CRLF/LF normalization; no build association
+      asserted.
+- path: tests/host/test_loader_audit.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code; vendor container field layout referenced without copying its runtime.
+  rights_holders:
+  - Project contributors
+  changes: Original synthetic negative fixtures for corrupt containers, loader differences, span collisions
+    and read-only output boundaries.
+  dependencies:
+  - Python standard library
+  - scripts/audit_loader.py
+  review_status: reviewed
