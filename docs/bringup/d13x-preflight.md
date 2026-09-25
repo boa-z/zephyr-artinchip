@@ -13,9 +13,9 @@ D13x / D133ECS; `boa` denotes a downstream community board, not an official vend
 | 1 MiB SRAM, 16 MiB PSRAM | Owner requirement; product board documentation | Preserve nominal sizes; PSRAM disabled |
 | SRAM S0 origin 0x30040000 | Fixed aic_soc.h and gcc_aic_nopsram.ld.S | Link only 0x30080000..0x30100000; actual loader availability BLOCKED |
 | TCM / SRAM S1 | Product configuration disables TCM and S1 | No remap writes; actual installed loader state BLOCKED |
-| CLIC base 0xe0800000, 96 slots | Fixed aic_soc.h / core_rv32.h | Legacy MMIO control layout with recorded prerequisite patch |
+| CLIC base 0x20800000, 96 slots | Fixed aic_soc.h / core_rv32.h | Legacy MMIO control layout with recorded prerequisite patch |
 | CLICCFG level bits 1..4, threshold +8 bits 24..31 | Fixed Alibaba CSI core_rv32.h | Not the newer generic CLIC layout; read implemented priority width from CLICINFO |
-| Machine timer 0xe000bff8, compare 0xe0004000, IRQ 7 | Fixed core_rv32.h / aic_soc.h / time.c | In-tree machine timer performs coherent reads and compare rearming |
+| Machine timer 0x2000bff8, compare 0x20004000, IRQ 7 | Fixed core_rv32.h / aic_soc.h / time.c | In-tree machine timer performs coherent reads and compare rearming |
 | Timer input 4 MHz | Fixed sys_freq.c non-QEMU path | Must measure real elapsed time on board |
 | UART0 0x18710000, IRQ 76 | Fixed aic_soc.h / UART HAL | Word-spaced, 32-bit DesignWare APB NS16550 access |
 | UART 48 MHz, 115200 8N1 | Product current configuration, clock source setup | Loader must supply this clock; fixed SDK helper's 24 MHz is not substituted |

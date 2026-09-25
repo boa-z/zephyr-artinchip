@@ -4,7 +4,7 @@
 #include <zephyr/sys/printk.h>
 
 /* The entry stores every field before Zephyr's BSS clearing; no stack use. */
-uint32_t aic_handoff_snapshot[17] __attribute__((section(".noinit"), aligned(16)));
+uint32_t aic_handoff_snapshot[33] __attribute__((section(".noinit"), aligned(16)));
 extern void aic_handoff_entry(void);
 
 int main(void)
@@ -25,7 +25,11 @@ int main(void)
  for (unsigned int i = 0; i < ARRAY_SIZE(names); i++) {
   printk("%s=0x%08x\n", names[i], aic_handoff_snapshot[i]);
  }
- printk("TCM/map=not-captured; no-unverified-register-probes\n");
+ for (unsigned int i = 0; i < 8; i++) {
+  printk("sysmap%u_addr=0x%08x cfg=0x%08x\n", i,
+         aic_handoff_snapshot[17 + 2 * i], aic_handoff_snapshot[18 + 2 * i]);
+ }
+ printk("TCM=not-captured; no-unverified-register-probes\n");
  printk("H0-PROBE CAPTURED hardware-acceptance=pending\n");
  return 0;
 }

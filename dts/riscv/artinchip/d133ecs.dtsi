@@ -34,17 +34,17 @@
 		#size-cells = <1>;
 		ranges;
 
-		clic: interrupt-controller@e0800000 {
+		clic: interrupt-controller@20800000 {
 			compatible = "riscv,clic";
-			reg = <0xe0800000 0x5000>;
+			reg = <0x20800000 0x5000>;
 			#address-cells = <0>;
 			#interrupt-cells = <2>;
 			interrupt-controller;
 		};
 
-		mtimer: timer@e000bff8 {
+		mtimer: timer@2000bff8 {
 			compatible = "riscv,machine-timer";
-			reg = <0xe000bff8 8>, <0xe0004000 8>;
+			reg = <0x2000bff8 8>, <0x20004000 8>;
 			reg-names = "mtime", "mtimecmp";
 			interrupts-extended = <&clic 7 0>;
 		};

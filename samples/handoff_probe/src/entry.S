@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Original stackless diagnostic entry. Register definitions referenced in
- * docs/provenance.yml. Only t0..t3 are scratch; no loader stack or gp use.
+ * docs/provenance.yml. Only t0..t4 are scratch; no loader stack or gp use.
  */
 .section .text.aic_handoff_entry,"ax",@progbits
 .balign 4
@@ -38,10 +38,10 @@ aic_handoff_entry:
  csrr t2, fcsr /* no write; read only if entry mstatus.FS != Off */
 1:
  sw t2, 52(t0)
- li t1, 0xe0800004 /* SDK CLICINFO */
+ li t1, 0x20800004 /* SDK non-QEMU CLICINFO; matching loader SystemInit */
  lw t2, 0(t1)
  sw t2, 56(t0)
- li t1, 0xe000bff8 /* SDK CORET MTIME */
+ li t1, 0x2000bff8 /* SDK non-QEMU CORET MTIME; matching loader time read */
 2:
  lw t2, 4(t1)
  lw t3, 0(t1)
@@ -49,6 +49,16 @@ aic_handoff_entry:
  lw t3, 4(t1)
  bne t2, t3, 2b
  sw t2, 64(t0)
+ /* SDK SYSMAPADDR/CFG0..7, read only. CPU_BASE + 0x0ffff000. */
+ li t1, 0x2ffff000
+ addi t2, t0, 68
+ addi t3, t0, 132
+3:
+ lw t4, 0(t1)
+ sw t4, 0(t2)
+ addi t1, t1, 4
+ addi t2, t2, 4
+ bne t2, t3, 3b
  li t1, 0x48305031 /* H0P1, written last */
  sw t1, 0(t0)
  fence rw, rw

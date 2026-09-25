@@ -133,6 +133,11 @@ files:
     revision: c5807f9e7d18292f920dafaa018b8174635085c4
     path: bsp/artinchip/sys/d13x/Kconfig.chip
     sha256: 33e4b2404a305a83742d890dc15e7fb3c203c765a8ea7fa2554619f8a4da3d59
+  - &id007
+    project: local D50T SDK read-only reference
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: bsp/artinchip/sys/d13x/Kconfig.chip
+    sha256: 118708e44dee19cac379f2004221bc9e829b0c83e3e3766fc1351549b11eed20
 - path: include/artinchip/module.h
   kind: new
   license: Apache-2.0
@@ -1171,3 +1176,16 @@ h0_closure_references:
     revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
     path: target/configs/d13x_d50t-2-lite_baremetal_bootloader_defconfig
     sha256: a2d5e2358a2935ba09a496cc96c738c6d13d6d3fa3b8b3b2880375220f2a35d8
+  - *id007
+  - project: local D50T SDK read-only reference
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: bsp/common/include/aic_common.h
+    sha256: 3b47b57553975a7e96adc0280232390cea021f75bc29389cbec4e375487728a1
+  - project: local D50T SDK read-only reference
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: application/baremetal/bootloader/lib/aicupg/basic_cmd.c
+    sha256: 0efc6274d59ef76132461c8ef7751ace0df2e5fbf9c299a762ddf082490d42d0
+  - project: local D50T SDK read-only reference
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: application/baremetal/bootloader/lib/aicupg/upg_main.c
+    sha256: 52c0bb9d8ce1412275eb2c5ba6797a23228e116cf58e4a7f1c0ee6c314f15db6

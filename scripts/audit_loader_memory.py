@@ -4,6 +4,8 @@ import argparse
 import io
 import json
 from pathlib import Path
+import struct
+import subprocess
 import sys
 
 from elftools.elf.elffile import ELFFile
@@ -32,7 +34,7 @@ TRACE = [
 ]
 
 
-def analyze(sdk, audit_path):
+def analyze(sdk, audit_path, objdump):
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
     if audit["audit_status"] != "PASS" or not audit["loader_comparison"]["exact_match"]:
         raise ValueError("matching loader static audit required")
@@ -90,11 +92,37 @@ def analyze(sdk, audit_path):
         region(name, heap["start"], heap["end"], "subset of MEM_DEFAULT: " + rule, lifetime,
                [trace[index], trace[9], trace[10]], "dynamic", "CPU and QSPI DMA",
                "source-derived allocation envelope; no peak proof")
-    for name in ("aich_dma", "g_dma_w_sync_buffer", "heap_def"):
+    for name in ("aich_dma", "g_dma_w_sync_buffer", "heap_def", "boot_arg", "g_aic_initial_blob"):
         sym = symbols.get(name)
         if sym:
             region(name, sym["start"], sym["start"] + sym["size"], "ELF object extent", "loader lifetime",
                    [str(elf_path)], "static", "CPU/DMA", "ELF-bound object")
+    # Decode the linked ILP32 heap_def_t table, not today's Kconfig defaults.
+    table = elf.get_section_by_name(".symtab").get_symbol_by_name("heap_def")[0]
+    section = elf.get_section(table["st_shndx"])
+    offset = table["st_value"] - section["sh_addr"]
+    raw = section.data()[offset:offset + table["st_size"]]
+    if len(raw) != table["st_size"] or not raw or len(raw) % 16:
+        raise ValueError("unsupported linked heap_def table")
+    heap_records = []
+    for index, (name_ptr, mem_type, start, end) in enumerate(struct.iter_unpack("<4I", raw)):
+        heap_records.append({"index": index, "name_pointer": name_ptr, "type": mem_type,
+                             "start": start, "end": end})
+        if start == end == 0:
+            continue
+        if start >= end:
+            raise ValueError("invalid linked heap region")
+        region("linked heap region " + str(index), start, end, "heap_def_t extracted from ELF initialized data",
+               "heap_init through payload jump", [str(elf_path)], "dynamic", "CPU and allocation consumers",
+               "ELF-bound envelope; consumers and peak usage separately reviewed")
+    disassembly = {}
+    for name in ("do_ram_boot", "boot_app", "SystemInit", "aic_get_time_us", "heap_init",
+                 "aic_get_boot_args", "of_fdt_dt_init_bare_nornand", "spl_load_fit_image",
+                 "spl_load_simple_fit", "exec_cmd_write_input_data"):
+        disassembly[name] = subprocess.check_output(
+            [str(objdump), "-d", "--disassemble=" + name, str(elf_path)], text=True)
+        if "<" + name + ">:" not in disassembly[name]:
+            raise ValueError("required linked function missing: " + name)
     for app, candidate in audit["candidates"].items():
         file_spans = candidate.get("file_spans", [])
         if not file_spans:
@@ -104,10 +132,10 @@ def analyze(sdk, audit_path):
                "spl_read through payload execution", [trace[1], trace[3], trace[4]], "dynamic",
                "CPU/QSPI DMA writes, CRC reads, payload executes", "intentional candidate overlap")
     for name, rule, evidence in [
-        ("reserved heap and loader display/USB state", "heap_def reserved region selected by compiled macros; allocation consumers and active bus masters need closure", [trace[9], trace[15]]),
+        ("loader display/USB live state", "heap envelopes extracted, but active bus masters and consumers need closure", [trace[9], trace[15]]),
         ("RAM-only FIT staging", "no approved address; must hold entire FIT without overlapping loader or destination copy", [trace[13]]),
         ("PBP/TCM/aliases and inherited DMA", "not bounded by tinySPL PT_LOAD; installed hardware mapping and bus masters unknown", [trace[14]]),
-        ("boot argument pointer/config DTB", "aic_get_boot_args plus optional config partition allocation; pointer lifetime and values unresolved", [trace[11], trace[12]]),
+        ("optional config DTB", "fixed PSRAM tail destination when config partition exists; DTB-derived size lacks complete range proof. Current user log reports No config partition", [trace[12]]),
     ]:
         region(name, None, None, rule, "potentially live through jump", evidence, "dynamic",
                "loader/PBP/peripherals", "unresolved")
@@ -115,6 +143,8 @@ def analyze(sdk, audit_path):
             "ram_ownership": "unverified", "loadable_image": False, "hardware_validation": "pending",
             "input_files": {**inputs, str(map_path): record(map_path.read_bytes())},
             "candidate_bindings": audit["candidates"], "trace": trace, "regions": regions,
+            "linked_heap_table": heap_records, "linked_disassembly": disassembly,
+            "disassembler": {"path": str(objdump), **record(objdump.read_bytes())},
             "cpu_handoff": {"source_sequence": ["dcache clean", "icache invalidate", "local IRQ disable", "ep(dev, boot_arg)"],
                             "unknown": ["other bus masters quiesced", "cache/map/TCM runtime state", "exact compiled-source/config receipt", "stack high water"],
                             "probe": "stackless entry before Zephyr __start; no CSR writes; FS-guarded fcsr"},
@@ -129,10 +159,11 @@ def main():
     parser.add_argument("--sdk", type=Path, required=True)
     parser.add_argument("--audit", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--objdump", type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists() or args.output.resolve().is_relative_to(args.sdk.resolve()):
         raise ValueError("new output outside read-only SDK required")
-    result = analyze(args.sdk, args.audit)
+    result = analyze(args.sdk, args.audit, args.objdump)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"status": result["status"], "output": str(args.output), "blockers": result["blockers"]}))
@@ -142,6 +173,6 @@ def main():
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except (OSError, ValueError, KeyError, StopIteration) as error:
+    except (OSError, ValueError, KeyError, StopIteration, subprocess.CalledProcessError) as error:
         print(json.dumps({"status": "FAIL", "error": str(error)}))
         sys.exit(1)

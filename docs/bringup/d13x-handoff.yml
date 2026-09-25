@@ -148,7 +148,7 @@ items:
     value:
       timer_hz: 4000000
       timer_irq: 7
-      clic_base: '0xe0800000'
+      clic_base: '0x20800000'
       irq_slots: 96
     evidence:
     - *id005
