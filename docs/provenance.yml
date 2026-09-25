@@ -3,6 +3,26 @@ human_signoff_pending: true
 review_meaning: File-level source/license/transformation audit only; not legal approval, hardware proof
   or human DCO.
 files:
+- path: tests/kernel/product-window.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Opt-in diagnostic kernel profile using observed 144-slot CLIC capacity.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: scripts/package_kernel_trial.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Fixed kernel ELF BIN FIT and 144-slot table validation.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
 - path: samples/handoff_probe/product-window.overlay
   kind: new
   license: Apache-2.0

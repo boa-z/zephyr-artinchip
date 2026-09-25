@@ -10,6 +10,27 @@ K_THREAD_STACK_DEFINE(worker_stack, 1024);
 static struct k_thread worker_thread;
 static atomic_t observed;
 
+/* A tick-dependent deadline cannot diagnose a stopped tick. Cycle reads do
+ * not require timer IRQ delivery; the iteration budget also covers a static
+ * cycle counter, but cannot protect against a stalled MMIO transaction.
+ */
+static bool wait_for_worker(void)
+{
+	uint32_t start = k_cycle_get_32();
+	uint32_t budget = k_ms_to_cyc_ceil32(1000);
+
+	for (uint32_t spins = 0; spins < 10000000U; spins++) {
+		if (atomic_get(&observed)) {
+			return true;
+		}
+		if ((uint32_t)(k_cycle_get_32() - start) >= budget) {
+			break;
+		}
+		compiler_barrier();
+	}
+	return atomic_get(&observed) != 0;
+}
+
 static void delayed_worker(void *a, void *b, void *c)
 {
 	ARG_UNUSED(a);
@@ -18,6 +39,30 @@ static void delayed_worker(void *a, void *b, void *c)
 	k_sleep(K_MSEC(20));
 	atomic_set(&observed, 1);
 	k_sem_give(&signal);
+}
+
+static void *kernel_preflight(void)
+{
+	int priority = k_thread_priority_get(k_current_get());
+	int64_t uptime = k_uptime_get();
+	uint32_t cycles = k_cycle_get_32();
+
+	printk("KERNEL-PREFLIGHT begin irq_slots=%u\n", CONFIG_NUM_IRQS);
+	k_sem_reset(&signal);
+	atomic_clear(&observed);
+	k_thread_create(&worker_thread, worker_stack, K_THREAD_STACK_SIZEOF(worker_stack),
+			delayed_worker, NULL, NULL, NULL, priority - 1, 0, K_NO_WAIT);
+	bool woke = wait_for_worker();
+	if (!woke) {
+		k_thread_abort(&worker_thread);
+	}
+	zassert_true(woke, "tick wake/preemption failed within bounded polling budget");
+	zassert_ok(k_thread_join(&worker_thread, K_NO_WAIT));
+	printk("KERNEL-PREFLIGHT PASS uptime_delta_ms=%lld cycle_delta=%u\n",
+	       (long long)(k_uptime_get() - uptime),
+	       (uint32_t)(k_cycle_get_32() - cycles));
+	k_sem_reset(&signal);
+	return NULL;
 }
 
 ZTEST(artinchip_kernel, test_module)
@@ -48,17 +93,17 @@ ZTEST(artinchip_kernel, test_timeout)
 ZTEST(artinchip_kernel, test_timer_preemption)
 {
 	int priority = k_thread_priority_get(k_current_get());
-	int64_t deadline = k_uptime_get() + 1000;
 
 	k_sem_reset(&signal);
 	atomic_clear(&observed);
 	k_thread_create(&worker_thread, worker_stack, K_THREAD_STACK_SIZEOF(worker_stack),
 			delayed_worker, NULL, NULL, NULL, priority - 1, 0, K_NO_WAIT);
 	/* No yield/sleep here: the timer must wake and preempt this thread. */
-	while ((atomic_get(&observed) == 0) && (k_uptime_get() < deadline)) {
-		compiler_barrier();
+	bool woke = wait_for_worker();
+	if (!woke) {
+		k_thread_abort(&worker_thread);
 	}
-	zassert_equal(atomic_get(&observed), 1);
+	zassert_true(woke, "timer did not preempt within bounded polling budget");
 	zassert_ok(k_thread_join(&worker_thread, K_SECONDS(1)));
 	k_sem_reset(&signal);
 }
@@ -80,4 +125,4 @@ ZTEST(artinchip_kernel, test_owned_memory)
 	}
 }
 
-ZTEST_SUITE(artinchip_kernel, NULL, NULL, NULL, NULL, NULL);
+ZTEST_SUITE(artinchip_kernel, NULL, kernel_preflight, NULL, NULL, NULL);
