@@ -228,3 +228,11 @@ tool choice. Recovery after an unbootable application, partition-selective
 programming and a recoverable Zephyr handoff remain unverified. H0 remains
 BLOCKED and loadable_image remains false. No device commands, driver changes,
 RAM loads or flash operations were performed for this update.
+
+## Owner follow-up: installed tool and data policy
+
+The owner identifies C:/Program Files/AiBurn, accepts loss of development-board
+data, and specifies pressing Reset first and then Boot. Release order and hold
+time were not supplied. Local read-only inspection confirms AiBurn.exe and
+upgcmd.exe; their hashes are in provenance.yml. No hardware operation or
+failed-application recovery was performed.

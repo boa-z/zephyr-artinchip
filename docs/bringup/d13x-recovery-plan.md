@@ -12,10 +12,14 @@ Known-good product image:
 SHA-256: `b0062dacbd68e8ef6f6de0c99c7cdc6620e602c5e00e913b454af6e93037aaf1`.
 The owner reports successful USB whole-image Aiburn programming, a 115200 console,
 main-power restart, and Reset + Boot entry to download mode. This is not flash
-readback. Exact button press/release order and duration, Aiburn version, terminal
-framing and failed-application recovery have not been supplied.
+readback. The owner further confirms: press Reset first, then Boot; development-board
+data need not be preserved. Release order, hold duration, terminal framing and
+failed-application recovery remain unspecified.
 
-Aiburn is the owner-used recovery tool; installed version is unknown.
+Aiburn is installed at `C:/Program Files/AiBurn`, confirmed by local directory
+inspection. AiBurn.exe reports FileVersion/ProductVersion 0.0.0.0; upgcmd.exe has
+no version-resource value. These do not establish a meaningful release version.
+Executable SHA-256 values are recorded in provenance.yml; neither was launched.
 `C:/Users/JCSH/Documents/Tools/artinchip-flash/Cargo.toml` declares 0.1.0;
 this is a source version, not an attested installed executable version.
 Source hashes are in provenance.yml. The tool is an allowed future candidate.
@@ -25,7 +29,9 @@ Source hashes are in provenance.yml. The tool is an allowed future candidate.
 The vendor protocol has memory WRITE and EXEC handlers. The local CLI exposes
 no RAM-only download/execute subcommand. Its GUI `official.rs` delegates
 `ramboot <fwc-name> <ram-address> <image>` to an external upgcmd program;
-that implementation and staging semantics have not been validated. Do not use
+the installed upgcmd.exe contains help text for this command, confirmed by
+read-only string inspection. Its implementation and staging semantics have not
+been validated. Do not use
 its default address as an approved address.
 
 Crucially, matching Sep24 ELF `do_ram_boot` at 0x40c0d394 checks an AIC header,
@@ -53,8 +59,9 @@ The NAND receiver resolves metadata partition names and erases/writes blocks in
 those MTD devices. Bad-block handling, image.info effects and updater behavior
 still require end-to-end review and manual recovery evidence.
 
-Desired write set: os only. Required untouched set: PBP, tinySPL, env, env_r,
-data, rodata. Actual guaranteed write/untouched sets: UNKNOWN. Do not issue an
+Preferred diagnostic write set: os only. The owner no longer requires
+development-board data preservation; this does not change the current candidate
+design requirement to preserve PBP/tinySPL and identify all other write effects. Actual guaranteed write/untouched sets: UNKNOWN. Do not issue an
 OS-only loading procedure until that discrepancy is resolved.
 
 ## Priority 3: whole-image study (not generated)
@@ -78,17 +85,17 @@ image or proof of NAND side effects. No such container was generated.
 ## Human recovery rehearsal and failure handling
 
 Before authorizing a diagnostic run, a human must retain the known-good image
-and checksum, back up product-owned persistent data, record the exact Aiburn
-version/configuration and write set, and demonstrate entry using the board's
-Reset + Boot controls. The confirmed combination is known; timings must come
-from the operator rather than an invented sequence.
+and checksum, record the Aiburn executable identity/configuration and write set,
+and demonstrate entry using the board controls: press Reset first, then Boot.
+No data backup is required for this development board per the owner. Release
+timing must come from the operator rather than an invented sequence.
 
 If an authorized payload fails, the human operator re-enters download mode with
 the confirmed board procedure, uses the verified Aiburn setup to restore the
 known-good product, restarts using the recorded power procedure, and saves raw
 serial logs showing the expected Sep24 loader and Sep25 application boot.
-The selected write scope and consent to any persistent-data rewrite must be
-settled before this recovery rehearsal. Success must be observed after an
+The owner accepts loss of development-board data. The specific loading/recovery
+procedure and hardware-operation authorization still precede the rehearsal. Success must be observed after an
 unbootable application; earlier successful whole-image programming is insufficient.
 
 Agent-prohibited actions for this phase: automatic USB/serial access, driver

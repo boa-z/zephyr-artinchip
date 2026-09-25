@@ -1220,3 +1220,14 @@ h0_closure_references:
     revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
     path: application/baremetal/bootloader/lib/aicupg/upg_main.c
     sha256: 52c0bb9d8ce1412275eb2c5ba6797a23228e116cf58e4a7f1c0ee6c314f15db6
+installed_aiburn_references:
+  usage: Reference-only executable metadata and embedded help inspection; no code copied, executable launched
+    or device accessed
+  license: Vendor binaries; redistribution rights not established; none redistributed
+  sources:
+  - project: locally installed AiBurn
+    path: C:/Program Files/AiBurn/AiBurn.exe
+    sha256: 103d2bcf941e02fd92f9bb5ed0ba8d2233f6efc8c5a39015b5248c42da9fce1d
+  - project: locally installed AiBurn
+    path: C:/Program Files/AiBurn/upgcmd.exe
+    sha256: e58c96d7b34a1150115013519646af2d4518f8b63e9232559de959072097d48f

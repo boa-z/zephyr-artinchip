@@ -163,12 +163,13 @@ items:
       after hardware access is authorized.
   recovery_and_permission:
     classification: unknown
-    value: User confirms USB programming of the complete image and subsequent main-power restart. User
+    value: 'User confirms USB programming of the complete image and subsequent main-power restart. User
       confirms Reset + Boot buttons enter download mode and Aiburn is the tool used. User also permits
       artinchip-flash as an alternative tool at C:/Users/JCSH/Documents/Tools/artinchip-flash. Exact button
       timing, Aiburn version and recovery with a non-booting application remain unverified. Tool choice
       does not establish a validated Zephyr loading route; no board operation was performed in this evidence
-      update.
+      update. Follow-up: installation C:/Program Files/AiBurn; press Reset then Boot; development-board
+      data need not be preserved. Release timing remains unspecified.'
     status: BLOCKED
     evidence:
     - *id001
@@ -351,6 +352,25 @@ items:
     - path: docs/bringup/d13x-recovery-plan.md
     limits: No current source/config build receipt for loader; PBP/alias/live bus-master closure and manual
       failed-application recovery absent. H1 NOT_RUN.
+  owner_download_details:
+    classification: observed
+    observer: owner report plus local read-only installation inspection
+    status: PARTIAL
+    value:
+      aiburn_directory: C:/Program Files/AiBurn
+      button_press_order:
+      - Reset
+      - Boot
+      button_release_order: not specified
+      hold_duration: not specified
+      development_board_data_preservation_required: false
+      aiburn_file_version: 0.0.0.0
+      upgcmd_file_version: null
+      upgcmd_ramboot_help_string_present: true
+    evidence:
+    - path: docs/bringup/d13x-recovery-plan.md
+    limits: No executable launched or board accessed. Help-string presence is not validation of staging,
+      execution or recovery. Recovery remains unverified.
 local_observation:
   classification: observed
   value: The earlier out/firmware/bootloader path is not the active output layout. Product images and
