@@ -827,8 +827,8 @@ files:
   rights_holders:
   - Project contributors
   - ArtInChip Technology Co., Ltd
-  changes: Record source-derived constraints separately from unknown installed-board state; no hardware
-    authorization.
+  changes: Record source-derived constraints and owner-reported boot evidence separately; preserve unresolved
+    installed-memory and hardware authorization gates.
   dependencies: []
   review_status: reviewed
   sources:
@@ -856,3 +856,76 @@ files:
     revision: f2ce05eadfe690500b864b8eef0328d2000bbd24
     path: docs/bringup/d13x-preflight.md
     sha256: 18a7c9664be24643d2e35d720ea4d3e8314798a401f352e9d93069dbb3f2cb33
+  - &id001
+    project: boa-w/luban-lite-jc-d50t-rev local read-only reference
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: tools/scripts/mk_image.py
+    sha256: d2bd5463dd7a26c8174b16072df7dd5778e1d1d7f7be8c8a2419b52747e08931
+    working_file_sha256: eef54b6655833c567fae698c04afe423b888779da85d9d46d9e81ab7584621bd
+    comparison: Committed and working contents match after CRLF/LF normalization; no build association
+      asserted.
+  - &id002
+    project: boa-w/luban-lite-jc-d50t-rev local read-only reference
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: application/baremetal/bootloader/cmd/nand_boot.c
+    sha256: 9a6438feacba6d5e6fba1a35de2e397c64a64098fbce15e75b8b2ed8cda63f6c
+    working_file_sha256: bbd3704abfac2d1d9912d522b7acd2954b39314ce097e4fde8f815a2537847f9
+    comparison: Committed and working contents match after CRLF/LF normalization; no build association
+      asserted.
+  - &id003
+    project: boa-w/luban-lite-jc-d50t-rev local read-only reference
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: application/baremetal/bootloader/lib/fitimage/fitimage.c
+    sha256: 04642a2a0c7d3c88461100f4778ae9a1147ccb5222e0797c75e970e3006c3d82
+    working_file_sha256: 7af18b76736c44670dcad69a979d1952c1147cb2c2a8e107b5542b45bf333bd0
+    comparison: Committed and working contents match after CRLF/LF normalization; no build association
+      asserted.
+  - &id004
+    project: boa-w/luban-lite-jc-d50t-rev local read-only reference
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: application/baremetal/bootloader/lib/common/boot_app.c
+    sha256: dce5bcb1c233b51aef0e0a06a10f4f050d09058378109cae0c0437462f18897d
+    working_file_sha256: 963807973bf1d60b35c766a84a8736004103d2b9f94dbecc0bcecb31f6b8e41d
+    comparison: Committed and working contents match after CRLF/LF normalization; no build association
+      asserted.
+  - &id005
+    project: boa-w/luban-lite-jc-d50t-rev local read-only reference
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: bsp/artinchip/drv_bare/umm_heap/malloc_port.c
+    sha256: 4cb52cf9250752b60cf54d33bf1a775f56e068045a925f3defbbd7e2dac04efa
+    working_file_sha256: 85a28f1e856e74d7523b19e14b48d484f0febdfe82edb03d49c6c82b77ef1877
+    comparison: Committed and working contents match after CRLF/LF normalization; no build association
+      asserted.
+- path: docs/bringup/d13x-product-artifacts.json
+  kind: reference-only
+  license: Apache-2.0
+  license_basis: Original analysis of local artifacts and user-reported observations; referenced SDK sources
+    retain Apache-2.0 notices. No SDK runtime copied.
+  rights_holders:
+  - Project contributors
+  changes: Record container/FIT integrity and distinguish packaged SPL from the newer local ELF; no hardware
+    programming.
+  dependencies:
+  - Python standard library
+  - pyelftools
+  review_status: reviewed
+  sources: &id006
+  - *id001
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+- path: docs/bringup/d13x-product-image-evidence.md
+  kind: reference-only
+  license: Apache-2.0
+  license_basis: Original analysis of local artifacts and user-reported observations; referenced SDK sources
+    retain Apache-2.0 notices. No SDK runtime copied.
+  rights_holders:
+  - Project contributors
+  changes: Record container/FIT integrity and distinguish packaged SPL from the newer local ELF; no hardware
+    programming.
+  dependencies:
+  - Python standard library
+  - pyelftools
+  review_status: reviewed
+  sources: *id006

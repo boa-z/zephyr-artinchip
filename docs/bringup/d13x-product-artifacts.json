@@ -1,0 +1,338 @@
+{
+  "schema_version": 1,
+  "scope": "read-only local artifact analysis; not flash readback or Zephyr hardware validation",
+  "record_date": "2026-09-25",
+  "sdk_path": "C:\\Users\\JCSH\\Documents\\Project\\D50T-2-Lite\\luban-lite-jc-d50t-rev",
+  "source_tree_head": "0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b",
+  "source_tree_status": [
+    " M .vscode/settings.json",
+    " m application/rt-thread/D50T-2-Lite",
+    " M application/rt-thread/pocketjs-smoke/main.c",
+    " M application/rt-thread/pocketjs-smoke/pocketjs_build.h",
+    " M packages/custom/lvgl-aic",
+    " M packages/third-party/Kconfig",
+    " M target/configs/d13x_d50t-2-lite_rt-thread_pocketjs-smoke_defconfig",
+    "?? packages/third-party/mbedtls/ports/src/tls_certificate.c",
+    "?? packages/third-party/pocketjs_ui_core/"
+  ],
+  "sources": [
+    {
+      "path": "tools/scripts/mk_image.py",
+      "sha256": "eef54b6655833c567fae698c04afe423b888779da85d9d46d9e81ab7584621bd",
+      "committed_blob_sha256": "d2bd5463dd7a26c8174b16072df7dd5778e1d1d7f7be8c8a2419b52747e08931",
+      "matches_commit_after_newline_normalization": true
+    },
+    {
+      "path": "application/baremetal/bootloader/cmd/nand_boot.c",
+      "sha256": "bbd3704abfac2d1d9912d522b7acd2954b39314ce097e4fde8f815a2537847f9",
+      "committed_blob_sha256": "9a6438feacba6d5e6fba1a35de2e397c64a64098fbce15e75b8b2ed8cda63f6c",
+      "matches_commit_after_newline_normalization": true
+    },
+    {
+      "path": "application/baremetal/bootloader/lib/fitimage/fitimage.c",
+      "sha256": "7af18b76736c44670dcad69a979d1952c1147cb2c2a8e107b5542b45bf333bd0",
+      "committed_blob_sha256": "04642a2a0c7d3c88461100f4778ae9a1147ccb5222e0797c75e970e3006c3d82",
+      "matches_commit_after_newline_normalization": true
+    },
+    {
+      "path": "application/baremetal/bootloader/lib/common/boot_app.c",
+      "sha256": "963807973bf1d60b35c766a84a8736004103d2b9f94dbecc0bcecb31f6b8e41d",
+      "committed_blob_sha256": "dce5bcb1c233b51aef0e0a06a10f4f050d09058378109cae0c0437462f18897d",
+      "matches_commit_after_newline_normalization": true
+    },
+    {
+      "path": "bsp/artinchip/drv_bare/umm_heap/malloc_port.c",
+      "sha256": "85a28f1e856e74d7523b19e14b48d484f0febdfe82edb03d49c6c82b77ef1877",
+      "committed_blob_sha256": "4cb52cf9250752b60cf54d33bf1a775f56e068045a925f3defbbd7e2dac04efa",
+      "matches_commit_after_newline_normalization": true
+    }
+  ],
+  "container": {
+    "file": "d13x_D50T-2-Lite_page_2k_block_128k_v1.0.0.img",
+    "magic": "AIC.FW",
+    "platform": "d13x",
+    "product": "D50T-2-Lite_page_2k_block_128k",
+    "version": "1.0.0",
+    "media": "spi-nand",
+    "nand_geometry": "P=2K,B=128K",
+    "components": [
+      {
+        "name": "image.updater.psram",
+        "partition": "",
+        "partition_offset": "0x0",
+        "partition_size": 0,
+        "device": "ram",
+        "offset": 6656,
+        "size": 23312,
+        "crc32": "0x10c6945f",
+        "crc32_matches": true,
+        "ram": "0x30044000",
+        "attributes": "required;run",
+        "filename": "usbupg-psram-init.aic",
+        "sha256": "a459df35cd8db832c6df48ff89932e56f48e08f9e34c51094af1fd630cc569b7",
+        "exact_companion_match": true
+      },
+      {
+        "name": "image.updater.spl",
+        "partition": "",
+        "partition_offset": "0x0",
+        "partition_size": 0,
+        "device": "ram",
+        "offset": 31232,
+        "size": 279568,
+        "crc32": "0xe9b0bbd8",
+        "crc32_matches": true,
+        "ram": "0x40100000",
+        "attributes": "required;run",
+        "filename": "bootloader.aic",
+        "sha256": "baf5037002775b259a2b8a1e2aa68a04e3fc8078de1399db9070773c8f5c0bbb",
+        "exact_companion_match": true
+      },
+      {
+        "name": "image.info",
+        "partition": "",
+        "partition_offset": "0x0",
+        "partition_size": 0,
+        "device": "ram",
+        "offset": 0,
+        "size": 2048,
+        "crc32": "0xe701aa71",
+        "crc32_matches": true,
+        "ram": "0xffffffff",
+        "attributes": "required",
+        "filename": "info.bin",
+        "sha256": "af1e4606dc039b5c8ca7e351e6a3746cf2d2127182030a3d18adf533ceabbc6b",
+        "exact_companion_match": false
+      },
+      {
+        "name": "image.target.spl",
+        "partition": "spl",
+        "partition_offset": "0x0",
+        "partition_size": 1048576,
+        "device": "spi-nand",
+        "offset": 311808,
+        "size": 279568,
+        "crc32": "0xe9b0bbd8",
+        "crc32_matches": true,
+        "ram": "0xffffffff",
+        "attributes": "mtd;required",
+        "filename": "bootloader.aic",
+        "sha256": "baf5037002775b259a2b8a1e2aa68a04e3fc8078de1399db9070773c8f5c0bbb",
+        "exact_companion_match": true
+      },
+      {
+        "name": "image.target.env",
+        "partition": "env",
+        "partition_offset": "0x100000",
+        "partition_size": 262144,
+        "device": "spi-nand",
+        "offset": 592384,
+        "size": 4096,
+        "crc32": "0x4775c673",
+        "crc32_matches": true,
+        "ram": "0xffffffff",
+        "attributes": "mtd;optional",
+        "filename": "env.bin",
+        "sha256": "21335eb159e345ed3228a9d76e336c4d010d3a7f678e8d5198666874f303f2e1",
+        "exact_companion_match": true
+      },
+      {
+        "name": "image.target.env_r",
+        "partition": "env_r",
+        "partition_offset": "0x140000",
+        "partition_size": 262144,
+        "device": "spi-nand",
+        "offset": 596480,
+        "size": 4096,
+        "crc32": "0x4775c673",
+        "crc32_matches": true,
+        "ram": "0xffffffff",
+        "attributes": "mtd;optional",
+        "filename": "env.bin",
+        "sha256": "21335eb159e345ed3228a9d76e336c4d010d3a7f678e8d5198666874f303f2e1",
+        "exact_companion_match": true
+      },
+      {
+        "name": "image.target.os",
+        "partition": "os",
+        "partition_offset": "0x180000",
+        "partition_size": 4194304,
+        "device": "spi-nand",
+        "offset": 600576,
+        "size": 1400832,
+        "crc32": "0x4f59e5fe",
+        "crc32_matches": true,
+        "ram": "0xffffffff",
+        "attributes": "mtd;required",
+        "filename": "d13x_os.itb",
+        "sha256": "38cfae3ce34507b2f84b5c60bd06b7bd27687664eabcb89958510f5a6519dbd6",
+        "exact_companion_match": true
+      },
+      {
+        "name": "image.target.rodata",
+        "partition": "rodata",
+        "partition_offset": "0x980000",
+        "partition_size": 14680064,
+        "device": "spi-nand",
+        "offset": 2001408,
+        "size": 708608,
+        "crc32": "0x43cd8d81",
+        "crc32_matches": true,
+        "ram": "0xffffffff",
+        "attributes": "mtd;optional",
+        "filename": "rodata.fatfs",
+        "sha256": "d4e008e065da5c44b178e44f561b0659faacfd445c46cf7ab56ad02d4809e338",
+        "exact_companion_match": true
+      },
+      {
+        "name": "image.target.data",
+        "partition": "data",
+        "partition_offset": "0x2580000",
+        "partition_size": 41943040,
+        "device": "spi-nand",
+        "offset": 2710016,
+        "size": 61440,
+        "crc32": "0xe5339b4c",
+        "crc32_matches": true,
+        "ram": "0xffffffff",
+        "attributes": "block;optional",
+        "filename": "data.fatfs",
+        "sha256": "2da94115589d66dba4fc7c975a514e51ee3a46d896f950508d49dc7a5da63409",
+        "exact_companion_match": true
+      }
+    ]
+  },
+  "fit": {
+    "load": "0x40000000",
+    "entry": "0x40000000",
+    "external_data_offset": 2048,
+    "payload_size": 1397692,
+    "payload_sha256": "3b62fc680164e56944ea4c1d992b7a97050179147b3481d7cb0b2d5e4ebce0db",
+    "matches_seg0_bin": true,
+    "matches_d13x_bin": true,
+    "nodes": [
+      "",
+      "/images",
+      "/images/seg0",
+      "/images/seg0/hash-1",
+      "/images/seg0/hash-2",
+      "/configurations",
+      "/configurations/conf-1"
+    ],
+    "hashes": [
+      {
+        "algorithm": "crc32",
+        "expected": "0eaad006",
+        "matches": true
+      },
+      {
+        "algorithm": "md5",
+        "expected": "38e1b8a501b46bbec5120bc65f864bd6",
+        "matches": true
+      }
+    ]
+  },
+  "local_loader": {
+    "entry": "0x40c00100",
+    "segments": [
+      {
+        "address": "0x40c00000",
+        "file_size": 253808,
+        "memory_size": 279224
+      }
+    ],
+    "symbols": {
+      "g_base_irqstack": "0x40c3df80",
+      "boot_params_stash": "0x40c3bdd0",
+      "g_top_normalstack": "0x40c41f88",
+      "__end": "0x40c442b8",
+      "g_base_normalstack": "0x40c3ff88",
+      "boot_arg": "0x40c3be28",
+      "__heap_end": "0x41000000",
+      "__heap_start": "0x40c80000",
+      "g_top_irqstack": "0x40c3ff80"
+    },
+    "matches_product_bootloader_bin": false
+  },
+  "files": {
+    "output/d13x_d50t-2-lite_rt-thread_D50T-2-Lite/images/d13x_D50T-2-Lite_page_2k_block_128k_v1.0.0.img": {
+      "size": 2771456,
+      "sha256": "5cdef86d5561f2d928d3408c6a669f4fff521a1739502983d16673344dc8f01c"
+    },
+    "output/d13x_d50t-2-lite_rt-thread_D50T-2-Lite/images/bootloader.bin": {
+      "size": 253552,
+      "sha256": "20975019923e9b7dddd3fec2d34e861140828a7bd292dea50a457f5bb1bcaea5",
+      "build_date_strings": [
+        "10:40:26",
+        "Sep 21 2026",
+        "10:40:27",
+        "20:05:06",
+        "Jun  1 2026"
+      ]
+    },
+    "output/d13x_d50t-2-lite_rt-thread_D50T-2-Lite/images/bootloader.aic": {
+      "size": 279568,
+      "sha256": "baf5037002775b259a2b8a1e2aa68a04e3fc8078de1399db9070773c8f5c0bbb"
+    },
+    "output/d13x_d50t-2-lite_rt-thread_D50T-2-Lite/images/loader.aic": {
+      "size": 256016,
+      "sha256": "e1367ed9595132411b13dddf6e3c829473f63baa36242ff0d12eee88f29c5730"
+    },
+    "output/d13x_d50t-2-lite_rt-thread_D50T-2-Lite/images/d13x_os.itb": {
+      "size": 1400832,
+      "sha256": "38cfae3ce34507b2f84b5c60bd06b7bd27687664eabcb89958510f5a6519dbd6"
+    },
+    "output/d13x_d50t-2-lite_rt-thread_D50T-2-Lite/images/d13x_os.its": {
+      "size": 545,
+      "sha256": "53594ee709a82a12bab29aa7267d615d6db85635e9f8f327313ea924e2287743"
+    },
+    "output/d13x_d50t-2-lite_rt-thread_D50T-2-Lite/images/image_cfg.json": {
+      "size": 4471,
+      "sha256": "e1a36bca9538bab57b1fe95a48ce9bbb333257584e4c9b3e24b6694b85ee4e23"
+    },
+    "output/d13x_d50t-2-lite_rt-thread_D50T-2-Lite/images/partition.json": {
+      "size": 211,
+      "sha256": "0d0ed9b6499babdbbdf0ed15017321898e736ec931b6b8b2af626539e2134970"
+    },
+    "output/d13x_d50t-2-lite_baremetal_bootloader/images/d13x.elf": {
+      "size": 2348984,
+      "sha256": "e6192f5c2ad831f2a9b6d2ecfda308fd77fcaefbc2be659985bb0b12c2e9d5f5"
+    },
+    "output/d13x_d50t-2-lite_baremetal_bootloader/images/d13x.bin": {
+      "size": 253552,
+      "sha256": "04945b6538ea018b104db20759ec7eadd9911b55cc6957e4135aab2811d4153b",
+      "build_date_strings": [
+        "16:30:14",
+        "Sep 24 2026",
+        "16:30:15",
+        "20:05:06",
+        "Jun  1 2026"
+      ]
+    },
+    "output/d13x_d50t-2-lite_baremetal_bootloader/images/d13x.map": {
+      "size": 926509,
+      "sha256": "fb6ce39a4945c01a74b6dedae1884237a6ffb9149c610bad33fc087be1023082"
+    }
+  },
+  "installed_binary_hash": "unknown",
+  "hardware_validation": "pending",
+  "loadable_image": false,
+  "packaged_loader": {
+    "loader.aic": {
+      "raw_loader_offset": 256,
+      "raw_loader_size": 253552,
+      "exact_raw_loader_match": true
+    },
+    "bootloader.aic": {
+      "raw_loader_offset": 23808,
+      "raw_loader_size": 253552,
+      "exact_raw_loader_match": true
+    }
+  },
+  "reported_loader_association": {
+    "reported_build": "Sep 21 2026 10:40:26",
+    "packaged_binary_contains_reported_build": true,
+    "local_separate_elf_is_different_build": true,
+    "conclusion": "Strong artifact/log correspondence, user-reported flashing; not independent installed-byte verification"
+  }
+}

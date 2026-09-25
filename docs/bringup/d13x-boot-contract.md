@@ -54,3 +54,8 @@ there is no guessed flash command, bypassed signature or destructive fallback.
 Current machine-readable handoff facts and unresolved fields are maintained in
 d13x-handoff.yml. Source-derived formats and link ranges are not observed loader
 capabilities or free-memory proof; this contract remains blocked until resolved.
+
+The owner's aiburn/product boot report and local container inspection are recorded
+in d13x-product-image-evidence.md. The packaged September 21 SPL corresponds to
+the reported banner, but the available separate September 24 loader ELF differs.
+Do not substitute its symbols as proof of the installed SPL's memory ownership.

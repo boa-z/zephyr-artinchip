@@ -27,12 +27,24 @@ items:
       sha256: b429771e08073f0571a93dcd059b567a353e8ca6fef4a779e9436020705b2027
     limits: Owner-required profile recorded in baseline; not a measured installed-board identity.
   installed_loader:
-    classification: unknown
-    value: null
-    status: BLOCKED
-    evidence: []
-    required_evidence: Installed version/hash or verifiable boot log; a local SDK ELF is not an installed
-      identity.
+    classification: observed
+    observer: user-reported console banner
+    value:
+      name: tinySPL
+      build: Sep 21 2026 10:40:26
+      installed_sha256: null
+    status: PARTIAL
+    evidence:
+    - &id001
+      path: docs/bringup/d13x-product-image-evidence.md
+      kind: owner-supplied image path, aiburn report and pasted boot log
+    - &id002
+      path: docs/bringup/d13x-product-artifacts.json
+      sha256: c1aa930e4917164d99985dc7c9986ddffe50c6fdb6762e8e02ebbcb569edf9d2
+      kind: read-only binary/container inspection
+    required_evidence: Exact installed-image association/readback as needed and a matching September 21
+      loader ELF/map or equivalent memory ownership evidence. The separate September 24 local loader ELF
+      differs from the packaged loader.
   reference_loader:
     classification: source-derived
     value: Pinned ram_boot.c recognizes AIC headers or uses the FIT loader; boot_app.c resolves the image
@@ -48,12 +60,19 @@ items:
       sha256: dce5bcb1c233b51aef0e0a06a10f4f050d09058378109cae0c0437462f18897d
     limits: Reference source only; no RAM loading command or format is authorized by this evidence.
   accepted_container_and_signature:
-    classification: unknown
-    value: null
-    status: BLOCKED
-    evidence: []
-    required_evidence: Installed loader format, headers, verification/signature policy and actual normal
-      load/jump path.
+    classification: observed
+    observer: user reports aiburn programming and successful product boot
+    value:
+      aiburn_container: AIC.FW
+      os_payload: FIT with external data
+      reported_check: CRC32 verify OK
+      installed_signature_policy: unknown
+    status: PARTIAL
+    evidence:
+    - *id001
+    - *id002
+    limits: The supplied local FIT has CRC32 and MD5 nodes, no signature node. This is not proof that
+      another payload or RAM download is accepted; no bypass is authorized.
   candidate_link_allocation:
     classification: source-derived
     value:
@@ -61,12 +80,12 @@ items:
       end_exclusive: '0x30100000'
       psram_enabled: false
     evidence:
-    - &id001
+    - &id003
       project: boa-z/zephyr-artinchip
       revision: f2ce05eadfe690500b864b8eef0328d2000bbd24
       path: boards/boa/d50t_2_lite/d50t_2_lite.dts
       sha256: 0abcaafd1048298c7324eb8f1f13fa60c81dc95875a0809e285a19cede5d8ff2
-    - &id003
+    - &id005
       project: boa-z/zephyr-artinchip
       revision: f2ce05eadfe690500b864b8eef0328d2000bbd24
       path: dts/riscv/artinchip/d133ecs.dtsi
@@ -96,8 +115,8 @@ items:
       clock_hz: 48000000
       baud: 115200
     evidence:
-    - *id001
-    - &id002
+    - *id003
+    - &id004
       project: boa-z/zephyr-artinchip
       revision: f2ce05eadfe690500b864b8eef0328d2000bbd24
       path: docs/bringup/d13x-preflight.md
@@ -105,16 +124,18 @@ items:
     limits: Product configuration evidence, not PCB routing, electrical levels or measured clock.
   uart_actual_handoff:
     classification: unknown
-    value: null
-    status: BLOCKED
-    evidence: []
+    value: The supplied product log demonstrates a user-observed working console; actual baud, physical
+      pin routing/electrical levels and inherited Zephyr clock remain unconfirmed.
+    status: PARTIAL
+    evidence:
+    - *id001
     required_evidence: Verified UART instance, routing/electrical levels and measured/confirmed inherited
       clock and baud.
   power_hold_reference:
     classification: source-derived
     value: PE16 high in the product board reference; candidate expects loader ownership.
     evidence:
-    - *id002
+    - *id004
   power_hold_actual:
     classification: unknown
     value: null
@@ -130,7 +151,7 @@ items:
       clic_base: '0xe0800000'
       irq_slots: 96
     evidence:
-    - *id003
+    - *id005
     limits: Source and fake-MMIO encoding evidence do not establish actual CLICINFO, CSR/trap/mret behavior
       or elapsed time.
   timer_clic_actual:
@@ -142,15 +163,70 @@ items:
       after hardware access is authorized.
   recovery_and_permission:
     classification: unknown
-    value: null
+    value: User reports successful programming with aiburn. Exact tool/version/selected partitions and
+      recovery after a failed payload remain unverified. This message supplies evidence, not authorization
+      to flash.
     status: BLOCKED
-    evidence: []
+    evidence:
+    - *id001
     required_evidence: Proven recovery path, named human operator and explicit scope of permitted board
       operations before any RAM load or flash operation.
+  reported_boot_path:
+    classification: observed
+    observer: user report; not agent-operated hardware
+    value:
+      tool: aiburn
+      medium: SPI-NAND
+      stages:
+      - Pre-Boot Program
+      - tinySPL
+      - FIT firmware from os
+      - Luban-Lite product application
+      reset_reason: Watchdog-Reset, Command-Reboot
+      application_build: Sep 23 2026 14:19:37
+      console_prompt: aic />
+    evidence:
+    - *id001
+    limits: One reported warm/reset boot; not Zephyr execution or independent cold-boot/recovery validation.
+  product_image_layout:
+    classification: source-derived
+    value:
+      product_fit_load: '0x40000000'
+      product_fit_entry: '0x40000000'
+      product_payload_bytes: 1397692
+      local_img_sha256: 5cdef86d5561f2d928d3408c6a669f4fff521a1739502983d16673344dc8f01c
+      packaged_loader_matches_reported_build: true
+    evidence:
+    - *id002
+    - *id001
+    limits: Local archive bytes and supplied log correspond; the current Zephyr SRAM layout is different.
+  local_loader_layout:
+    classification: source-derived
+    value:
+      entry: '0x40c00100'
+      segments:
+      - address: '0x40c00000'
+        file_size: 253808
+        memory_size: 279224
+      symbols:
+        g_base_irqstack: '0x40c3df80'
+        boot_params_stash: '0x40c3bdd0'
+        g_top_normalstack: '0x40c41f88'
+        __end: '0x40c442b8'
+        g_base_normalstack: '0x40c3ff88'
+        boot_arg: '0x40c3be28'
+        __heap_end: '0x41000000'
+        __heap_start: '0x40c80000'
+        g_top_irqstack: '0x40c3ff80'
+      matches_product_bootloader_bin: false
+    evidence:
+    - *id002
+    limits: Separate September 24 build; DOES NOT match the packaged September 21 SPL. Do not use these
+      ELF symbols to close installed-loader RAM ownership.
 local_observation:
   classification: observed
-  value: The previously cited local out/firmware/bootloader/d13x.elf path was absent during this read-only
-    R1 check. No physical connection or board observation was made.
+  value: The earlier out/firmware/bootloader path is not the active output layout. Product images and
+    a separate loader ELF now located under output/<configuration>/images. The separate loader binary
+    is a newer, different build than the packaged loader. SDK and product files were read only.
   evidence:
-  - path: artifacts/r1-h0-sources.json
-    kind: local source audit output
+  - *id002

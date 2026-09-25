@@ -23,7 +23,7 @@ D13x / D133ECS; `boa` denotes a downstream community board, not an official vend
 | Power hold PE16 high | Product target board.c | Loader obligation; candidate has no GPIO driver initialization |
 | Clock / oscillator / boot media | Product configuration references PLL and external NAND | No oscillator, storage or CMU driver copied; actual board/loader log required |
 | Cache line 32 bytes | Fixed D13x Kconfig.chip and core header | Preserve inherited cache/map state; maintenance validation NOT_RUN |
-| Prior bootloader build reference | Product out/firmware/bootloader/d13x.elf + map, previously reported; ELF path absent during R1 | Neither a prior local link map nor an absent file proves installed loader identity |
+| Current product/loader artifacts | output/d13x_d50t-2-lite_rt-thread_D50T-2-Lite/images contains packaged September 21 SPL; separate baremetal_bootloader output contains September 24 ELF/map | Newer ELF does not match packaged SPL; see d13x-product-image-evidence.md |
 
 Sources and exact original hashes are recorded in `../provenance.yml`.
 The fixed SDK has no D50T board. Product-specific evidence is additional evidence,
