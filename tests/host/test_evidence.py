@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
+import copy
 import json
 from pathlib import Path
 import sys
@@ -30,12 +31,26 @@ class EvidenceTests(unittest.TestCase):
         self.environment = self.root / "environment.json"
         self.environment.write_text('{"status":"PASS"}')
         names = {"artinchip.bringup", "artinchip.kernel", "artinchip.fpu"}
+        def cases(name):
+            if name == "artinchip.kernel":
+                return [name + ".artinchip_kernel." + case for case in
+                        ("owned_memory", "timer_preemption", "timeout", "thread_semaphore", "module")]
+            if name == "artinchip.fpu":
+                return [name + ".artinchip_fpu.context_registers"]
+            if name.startswith("artinchip.clic."):
+                return [name + ".clic_mmio." + case for case in
+                        ("irq_edges_enable_pending_shv", "invalid_width", "level_clamp",
+                         "priority_widths", "layout_and_threshold")]
+            return [name]
         for directory, runtime in ((self.d13x, False), (self.qemu, True)):
             current = names | ({"artinchip.bringup.no_assert", "artinchip.clic.legacy",
                                "artinchip.clic.generic", "artinchip.clic.nuclei"} if runtime else set())
             status = "passed" if runtime else "not run"
             (directory / "twister.json").write_text(json.dumps({"testsuites": [
-                {"name": name, "status": status, "testcases": [{"status": status}]} for name in current]}))
+                {"name": name, "status": status,
+                 "platform": "qemu_riscv32/qemu_virt_riscv32" if runtime else "d50t_2_lite/d133ecs",
+                 "testcases": [{"identifier": case, "status": status} for case in cases(name)]}
+                for name in current]}))
         for application in evidence.APPLICATIONS:
             p = self.candidates / application
             payload = {}
@@ -108,6 +123,111 @@ class EvidenceTests(unittest.TestCase):
         for name in ("../escape", "/absolute", "C:/secret", "a\\b"):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 evidence.safe_name(name)
+
+    def test_twister_identity_and_coverage(self):
+        for directory, runtime in ((self.qemu, True), (self.d13x, False)):
+            original = json.loads((directory / "twister.json").read_text())
+            evidence.check_suite(original, runtime)
+            for mutation in ("platform", "duplicate_suite", "missing_case", "duplicate_case",
+                             "wrong_case", "failed_case", "wrong_execution_scope", "filtered_required"):
+                changed = copy.deepcopy(original)
+                suites = changed["testsuites"]
+                kernel = next(s for s in suites if s["name"] == "artinchip.kernel")
+                if mutation == "platform":
+                    kernel["platform"] = "other_board"
+                elif mutation == "duplicate_suite":
+                    suites.append(copy.deepcopy(kernel))
+                elif mutation == "missing_case":
+                    kernel["testcases"].pop()
+                elif mutation == "duplicate_case":
+                    kernel["testcases"][-1] = kernel["testcases"][0]
+                elif mutation == "wrong_case":
+                    kernel["testcases"][0]["identifier"] = "unrelated"
+                elif mutation == "failed_case":
+                    kernel["testcases"][0]["status"] = "failed"
+                elif mutation == "filtered_required":
+                    kernel["status"] = "filtered"
+                else:
+                    kernel["status"] = "not run" if runtime else "passed"
+                with self.subTest(runtime=runtime, mutation=mutation), self.assertRaises(ValueError):
+                    evidence.check_suite(changed, runtime)
+
+    def test_expected_d13x_filter_is_not_execution(self):
+        data = json.loads((self.d13x / "twister.json").read_text())
+        data["testsuites"].append({"name": "artinchip.bringup.no_assert",
+                                   "platform": "d50t_2_lite/d133ecs",
+                                   "status": "filtered", "testcases": []})
+        evidence.check_suite(data, False)
+        data["testsuites"][-1]["name"] = "unknown.filtered"
+        with self.assertRaises(ValueError):
+            evidence.check_suite(data, False)
+
+    def rehash_json(self, name, mutate):
+        with zipfile.ZipFile(self.archive) as z:
+            contents = {n: z.read(n) for n in z.namelist()}
+        data = json.loads(contents[name])
+        mutate(data)
+        contents[name] = json.dumps(data).encode()
+        if name != "evidence.json":
+            index = json.loads(contents["evidence.json"])
+            index["files"][name] = evidence.record(contents[name])
+            contents["evidence.json"] = json.dumps(index).encode()
+        with zipfile.ZipFile(self.archive, "w") as z:
+            for n, value in contents.items():
+                z.writestr(n, value)
+
+    def test_download_rechecks_rehashed_gate_reports(self):
+        self.stage()
+        original = self.archive.read_bytes()
+        changes = [
+            ("qemu/twister.json", lambda d: d["testsuites"][0].update(platform="wrong")),
+            ("d13x/twister.json", lambda d: d["testsuites"][0].update(status="passed")),
+            ("environment.json", lambda d: d.update(status="FAIL")),
+            ("negative/probes.json", lambda d: d["missing_signal"].update(exit_code=0)),
+            ("negative/probes.json", lambda d: d["frozen_cpu"].update(timed_out=False))]
+        for name, mutate in changes:
+            self.archive.write_bytes(original)
+            self.rehash_json(name, mutate)
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                evidence.verify_archive(self.archive)
+
+    def test_download_rejects_index_misbinding(self):
+        self.stage()
+        original = self.archive.read_bytes()
+        for field, value in (("source_at_build", "b" * 40), ("elf", {}),
+                             ("manifest", "candidates/fpu/candidate.json"),
+                             ("runtime_scope", "PASS on D13x"),
+                             ("hardware_validation", "verified"), ("expected_output", "PASS")):
+            self.archive.write_bytes(original)
+            self.rehash_json("evidence.json",
+                             lambda d: d["candidates"]["kernel"].update({field: value}))
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                evidence.verify_archive(self.archive)
+
+    def test_download_rejects_rehashed_wrong_application(self):
+        self.stage()
+        self.rehash_json("candidates/kernel/candidate.json", lambda d: d.update(application="fpu"))
+        with self.assertRaises(ValueError):
+            evidence.verify_archive(self.archive)
+
+    def test_download_rejects_mixed_sources_even_with_matching_index(self):
+        self.stage()
+        self.rehash_json("candidates/kernel/candidate.json",
+                         lambda d: d["source_at_build"].update(head="b" * 40))
+        self.rehash_json("evidence.json",
+                         lambda d: d["candidates"]["kernel"].update(source_at_build="b" * 40))
+        with self.assertRaisesRegex(ValueError, "different source"):
+            evidence.verify_archive(self.archive)
+
+    def test_download_rejects_inconsistent_status_claims(self):
+        self.stage()
+        original = self.archive.read_bytes()
+        for field, value in (("job_status", "failure"), ("hardware_validation", "verified"),
+                             ("upstream_ready", "yes"), ("software_audit", "unknown")):
+            self.archive.write_bytes(original)
+            self.rehash_json("evidence.json", lambda d: d.update({field: value}))
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                evidence.verify_archive(self.archive)
 
 
 class BinaryTests(unittest.TestCase):

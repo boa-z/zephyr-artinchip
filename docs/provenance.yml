@@ -788,7 +788,8 @@ files:
   rights_holders:
   - Project contributors
   changes: Bind build-time source and payload identity, validate linked inputs and bin conversion, transport
-    explicit evidence with byte verification.
+    explicit evidence with byte verification. Enforce exact platform/scenario/case inventory
+    and downloaded report/index consistency without changing hardware claims.
   dependencies:
   - Pinned Zephyr generated build metadata
   - Python standard library
@@ -814,7 +815,8 @@ files:
   rights_holders:
   - Project contributors
   changes: Bind build-time source and payload identity, validate linked inputs and bin conversion, transport
-    explicit evidence with byte verification.
+    explicit evidence with byte verification. Add synthetic negative coverage for missing/duplicate
+    cases, wrong platforms, rehashed gate contradictions and candidate index misbinding.
   dependencies:
   - Pinned Zephyr generated build metadata
   - Python standard library

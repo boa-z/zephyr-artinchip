@@ -13,6 +13,23 @@ PAYLOAD = {".config", "zephyr.elf", "zephyr.bin", "zephyr.map", "zephyr.dts",
            "boot-contract.md", "validation.md", "patches/README.md", "patches/series.json"}
 LOGS = {"twister.json", "testplan.json", "twister.xml", "twister_report.xml",
         "twister_suite_report.xml", "handler.log", "build.log", "twister.log", "probes.json", "missing-signal.log", "frozen-cpu.log"}
+EXPECTED_OUTPUT = {
+    "bringup": "BRINGUP: thread/semaphore/timeout PASS",
+    "kernel": "TESTSUITE artinchip_kernel succeeded",
+    "fpu": "TESTSUITE artinchip_fpu succeeded"}
+# Explicit acceptance inventory for the pinned project tests. A reduced suite
+# must not become a pass simply by retaining each scenario name once.
+CASE_SUFFIXES = {
+    "artinchip.bringup": ("",),
+    "artinchip.bringup.no_assert": ("",),
+    "artinchip.kernel": tuple(".artinchip_kernel." + name for name in
+                              ("owned_memory", "timer_preemption", "timeout",
+                               "thread_semaphore", "module")),
+    "artinchip.fpu": (".artinchip_fpu.context_registers",),
+    **{"artinchip.clic." + mode: tuple(".clic_mmio." + name for name in
+                                      ("irq_edges_enable_pending_shv", "invalid_width",
+                                       "level_clamp", "priority_widths", "layout_and_threshold"))
+       for mode in ("legacy", "generic", "nuclei")}}
 
 
 def record(data):
@@ -40,6 +57,11 @@ def candidate_records(manifest):
 
 def check_suite(data, runtime):
     suites = data["testsuites"]
+    platform = "qemu_riscv32/qemu_virt_riscv32" if runtime else "d50t_2_lite/d133ecs"
+    if any(s.get("platform") != platform for s in suites):
+        raise ValueError("unexpected Twister platform")
+    if len({s["name"] for s in suites}) != len(suites):
+        raise ValueError("duplicate Twister scenario")
     selected = [s for s in suites if s["status"] != "filtered"]
     expected = {"artinchip.bringup", "artinchip.kernel", "artinchip.fpu"}
     if runtime:
@@ -47,10 +69,35 @@ def check_suite(data, runtime):
                      "artinchip.clic.generic", "artinchip.clic.nuclei"}
     if {s["name"] for s in selected} != expected:
         raise ValueError("unexpected selected Twister scenarios")
+    allowed_filtered = set() if runtime else {"artinchip.bringup.no_assert"}
+    if any(s["name"] not in allowed_filtered for s in suites if s["status"] == "filtered"):
+        raise ValueError("unexpected filtered Twister scenario")
     status = "passed" if runtime else "not run"
     if any(s["status"] != status or not s["testcases"] or
            any(c["status"] != status for c in s["testcases"]) for s in selected):
         raise ValueError("Twister gate contains failed or unexecuted cases")
+    for suite in selected:
+        identifiers = [c.get("identifier") for c in suite["testcases"]]
+        expected_cases = {suite["name"] + suffix for suffix in CASE_SUFFIXES[suite["name"]]}
+        if len(identifiers) != len(expected_cases) or set(identifiers) != expected_cases:
+            raise ValueError("unexpected Twister testcase inventory")
+
+
+def check_probes(probes):
+    if (probes["status"] != "PASS" or probes["missing_signal"]["exit_code"] == 0 or
+            probes["frozen_cpu"]["exit_code"] != 124 or not probes["frozen_cpu"]["timed_out"]):
+        raise ValueError("negative runtime probes did not meet their failure expectations")
+
+
+def candidate_index(application, manifest):
+    if manifest["application"] != application:
+        raise ValueError("candidate application mismatch")
+    return {"manifest": f"candidates/{application}/candidate.json",
+            "source_at_build": manifest["source_at_build"]["head"],
+            "elf": manifest["files"]["zephyr.elf"],
+            "hardware_validation": "pending",
+            "runtime_scope": "NOT_RUN on D13x",
+            "expected_output": EXPECTED_OUTPUT[application]}
 
 
 def stage(output, status, qemu, d13x, candidates, logs, environment, negative):
@@ -72,9 +119,7 @@ def stage(output, status, qemu, d13x, candidates, logs, environment, negative):
     index = {}
     if success:
         probes = json.loads((negative / "probes.json").read_text())
-        if (probes["status"] != "PASS" or probes["missing_signal"]["exit_code"] == 0 or
-                probes["frozen_cpu"]["exit_code"] != 124 or not probes["frozen_cpu"]["timed_out"]):
-            raise ValueError("negative runtime probes did not meet their failure expectations")
+        check_probes(probes)
         env = json.loads(environment.read_text())
         if env["status"] != "PASS":
             raise ValueError("environment gate did not pass")
@@ -90,15 +135,7 @@ def stage(output, status, qemu, d13x, candidates, logs, environment, negative):
                     raise ValueError(f"candidate integrity mismatch: {application}/{name}")
                 files[f"candidates/{application}/{name}"] = data
             files[f"candidates/{application}/candidate.json"] = (directory / "candidate.json").read_bytes()
-            index[application] = {"manifest": f"candidates/{application}/candidate.json",
-                                  "source_at_build": manifest["source_at_build"]["head"],
-                                  "elf": manifest["files"]["zephyr.elf"],
-                                  "hardware_validation": "pending",
-                                  "runtime_scope": "NOT_RUN on D13x",
-                                  "expected_output": {
-                                      "bringup": "BRINGUP: thread/semaphore/timeout PASS",
-                                      "kernel": "TESTSUITE artinchip_kernel succeeded",
-                                      "fpu": "TESTSUITE artinchip_fpu succeeded"}[application]}
+            index[application] = candidate_index(application, manifest)
         if len({item["source_at_build"] for item in index.values()}) != 1:
             raise ValueError("candidate set was built from different source commits")
     if not files:
@@ -125,22 +162,39 @@ def verify_archive(path):
         for name in names:
             safe_name(name)
         manifest = json.loads(archive.read("evidence.json"))
+        if (manifest["schema_version"] != 1 or manifest["hardware_validation"] != "pending"
+                or manifest["upstream_ready"] != "no"
+                or manifest["software_audit"] not in {"pass", "failed"}):
+            raise ValueError("unsupported evidence scope or status")
+        if ((manifest["software_audit"] == "pass" and manifest["job_status"] != "success")
+                or (manifest["software_audit"] == "failed" and
+                    manifest["job_status"] not in {"failure", "cancelled", "skipped"})):
+            raise ValueError("inconsistent software/job status")
         if set(names) != set(manifest["files"]) | {"evidence.json"}:
             raise ValueError("archive inventory mismatch")
         for name, expected in manifest["files"].items():
             if record(archive.read(name)) != expected:
                 raise ValueError(f"archive integrity mismatch: {name}")
         if manifest["software_audit"] == "pass":
+            check_suite(json.loads(archive.read("qemu/twister.json")), True)
+            check_suite(json.loads(archive.read("d13x/twister.json")), False)
+            check_probes(json.loads(archive.read("negative/probes.json")))
+            if json.loads(archive.read("environment.json"))["status"] != "PASS":
+                raise ValueError("downloaded environment gate did not pass")
             if set(manifest["candidates"]) != APPLICATIONS:
                 raise ValueError("missing application candidate")
             for application, item in manifest["candidates"].items():
-                candidate = json.loads(archive.read(item["manifest"]))
+                candidate = json.loads(archive.read(f"candidates/{application}/candidate.json"))
+                if item != candidate_index(application, candidate):
+                    raise ValueError("downloaded candidate index mismatch")
                 for name, expected in candidate_records(candidate).items():
                     if record(archive.read(f"candidates/{application}/{name}")) != expected:
                         raise ValueError("downloaded candidate differs from candidate manifest")
+            if len({item["source_at_build"] for item in manifest["candidates"].values()}) != 1:
+                raise ValueError("downloaded candidates have different source commits")
         elif manifest["candidates"] or any(n.startswith("candidates/") for n in names):
             raise ValueError("failure archive must not advertise candidate success")
-    return {"status": "PASS", "scope": "archive inventory/size/SHA-256",
+    return {"status": "PASS", "scope": "archive inventory/size/SHA-256 and software gate/index consistency",
             "software_audit": manifest["software_audit"], "files": len(manifest["files"])}
 
 

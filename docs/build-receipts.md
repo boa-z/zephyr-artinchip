@@ -71,6 +71,20 @@ artifact into a separate directory, then runs scripts/evidence.py verify on the
 downloaded file. Verification rejects extra/missing/duplicate entries, unsafe
 paths, changed sizes/hashes and missing candidate .config files.
 
+Both staging and downloaded-archive verification require the exact pinned test
+inventory: seven QEMU configurations / 23 executed cases, and three D13x
+configurations / seven build-only cases. Platform identity, unique scenarios,
+unique case identifiers and execution status are checked. The optional filtered
+D13x assertions-off scenario is not execution. A renamed, omitted or added test
+requires an intentional acceptance-inventory update; scenario names alone cannot
+stand in for complete coverage.
+
+Download verification also rechecks archived environment/negative-probe results
+and binds each index entry to its own candidate application, source commit, ELF
+digest and pending-hardware scope. All three source commits must agree. Rehashing
+an internally contradictory report does not make it pass. This is consistency
+validation, not cryptographic authentication of the producer or hardware evidence.
+
 Local archive roundtrips do not prove GitHub transport. A new remote Windows run
 requires separate push authorization. Linux clean-workspace initialization,
 build and collection remain a prerequisite before a cross-platform delivery
