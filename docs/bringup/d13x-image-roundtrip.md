@@ -52,6 +52,21 @@ The changed probe requires a new ELF/bin/map/receipt and a new loader/FIT audit;
 historical 53351bb probe artifacts do not include this output and must not be
 relabeled. Other firmware applications have not changed.
 
+Validation at source commit `32397e5c4e3105d02b212d5fd6d8c7ed2f6c488e`:
+108 host tests PASS; lint and provenance PASS. Fresh target build at
+`C:/aic-h0-early-uart-v1` PASS, using 25312 bytes of the configured 512 KiB RAM.
+The ELF/ABI collector, matching-loader static audit and FIT verification PASS.
+Artifacts are under `artifacts/h0-early-uart/`. That audit also includes unchanged
+historical bringup/kernel/FPU candidates from 53351bb, copied with their original
+receipts; they were not rebuilt or relabeled as 32397e5.
+
+Manual disassembly review: entry `0x30080dd8`, snapshot `0x30085050`, UART status
+`0x30085040`. The emitted UART address is `0x18710000`; the early path contains
+no stack adjustment, gp-relative addressing or C call and ends with a direct
+jump to `__start` at `0x30080000`. No physical execution has occurred.
+New probe FIT SHA-256:
+`7bfa1c43c7baaed85f36a257989a9cd47c34dc612db667238a0f61d22383c61c`.
+
 ## Remaining work before a test image
 
 Implement and independently verify bounded OS replacement and required metadata
