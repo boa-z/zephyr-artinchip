@@ -69,6 +69,10 @@ New probe FIT SHA-256:
 
 ## Remaining work before a test image
 
+Follow-up: [fixed-slot replacement](d13x-test-image.md) now implements bounded
+replacement and verification as an offline study. The historical roundtrip
+tool above still intentionally supports only original-OS refill.
+
 Implement and independently verify bounded OS replacement and required metadata
 updates only after the container write semantics are established. Preserve all
 non-OS components and report metadata changes separately. Close RAM/TCM alias

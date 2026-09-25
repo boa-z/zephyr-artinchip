@@ -3,6 +3,22 @@ human_signoff_pending: true
 review_meaning: File-level source/license/transformation audit only; not legal approval, hardware proof
   or human DCO.
 files:
+- path: scripts/test_image.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders: [Project contributors]
+  changes: Restricted fixed-slot OS substitution and independent byte-range verification.
+  dependencies: [scripts/audit_loader.py, scripts/zephyr_fit.py, image_roundtrip_references]
+  review_status: reviewed
+- path: tests/host/test_test_image.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original tests; repository LICENSE; human DCO pending.
+  rights_holders: [Project contributors]
+  changes: Reject capacity, CRC-repaired non-OS changes, metadata and padding corruption.
+  dependencies: [Python standard library]
+  review_status: reviewed
 - path: scripts/image_roundtrip.py
   kind: new
   license: Apache-2.0
@@ -1275,3 +1291,12 @@ image_roundtrip_references:
   - project: local D50T SDK
     path: bsp/artinchip/include/hal/aic_hal_uart.h
     sha256: 5731a3ff787a7ce738dcf05cd06039d4501701290d21c7dd71609e0c5b0d4fec
+fixed_slot_host_references:
+  usage: Reference-only explicit component offset and length interpretation; no runtime copied or executed.
+  sources:
+  - project: local artinchip-flash
+    path: src/device.rs
+    sha256: 08b513543079208e0254788edac8029423ac94f52af6313b830b6d9c3a157943
+  - project: local artinchip-flash
+    path: src/image/parser.rs
+    sha256: e6e2fe8d81115b1e3b6060d97f49fe95d630de2e94066e077fddabd5b285a18b
