@@ -1,0 +1,10 @@
+tests:
+  artinchip.fpu:
+    platform_allow:
+      - qemu_riscv32
+    integration_platforms:
+      - qemu_riscv32
+    tags:
+      - kernel
+      - fpu
+    timeout: 180
