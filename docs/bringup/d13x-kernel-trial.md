@@ -101,3 +101,36 @@ QEMU C:/aic-z0-kernel-qemu-v2：5/5 通过。三项篡改拒绝检查通过。
 特别保留两组 KERNEL-POLL/KERNEL-CSR。第一轮包保持不变，勿与第二轮混用。
 打包器当前固定第二轮 ELF/BIN；首轮脚本可在提交 677e289 找到。
 第二轮 hardware_validation=pending，第一轮明确为 FAIL。
+
+## 第二轮实板结果：失败（诊断收敛，未修复）
+
+用户回传日志对应 34700 字节 payload（与 zephyr.bin 一致），Zephyr build
+839728050444。镜像身份由本轮操作上下文关联；串口未回报镜像 SHA-256，
+不视为独立哈希证明。原始日志见
+artifacts/z0-kernel-poll-board-result/board-log.txt，摘要见同目录
+user-result.json。
+
+- KERNEL-PREFLIGHT：begin irq_slots=144，PASS，uptime_delta_ms=42，
+  cycle_delta=164863。POLL：reason=worker，woke=1，phase=2，priority=0，
+  tick_delta=21，cycle_delta=83614。CSR：mstatus 前后均为 0x88（MIE 置位），
+  mcause 由 0x0800000b 变为 0x88000007。
+- test_module、test_owned_memory、test_thread_semaphore、test_timeout 通过，
+  耗时分别为 0.001/0.011/0.021/0.026 秒。
+- test_timer_preemption 在 main.c:153 因 woke=false 失败，耗时 1.035 秒。
+  POLL：reason=cycles，woke=0，phase=1，priority=2，tick_delta=1000，
+  cycle_delta=4000000（恰为 4 MHz 下 1000 ms 预算）。CSR 前后无变化，
+  mstatus=0x88，mcause=0x0800000b。
+- 套件 pass=4、fail=1、skip=0，最终 PROJECT EXECUTION FAILED。
+
+分析结论（以本日志为界，不外推硬件参数）：
+
+1. 阻塞等待路径的定时器可用：semaphore/timeout 睡眠均按时返回，mtime 在
+   推进，超时到期能唤醒阻塞的等待者。
+2. 自旋抢占路径失败：worker 已进入 k_sleep（phase=1）但 1 秒内未返回；
+   tick_delta=1000 是 tickless 下由周期推算的 elapsed，不是中断计数证明；
+   mcause 采样是 last-trap 提示（0xb 为 ecall 上下文切换痕迹），不是原子
+   快照，不能单独证明中断有无。
+3. 未判定的根因分支：自旋期间定时器 ISR 是否投递 vs ISR 投递后线程唤醒/
+   抢占是否发生。本轮诊断无法区分二者；不延长等待预算、不修改优先级来
+   掩盖失败。下一轮以 ISR 侧计数（k_timer 到期回调）与自旋等待分离两个
+   分支，仍使用公开内核 API，不改上游驱动。

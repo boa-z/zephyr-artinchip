@@ -13,6 +13,18 @@ K_THREAD_STACK_DEFINE(worker_stack, 1024);
 static struct k_thread worker_thread;
 static atomic_t observed;
 static atomic_t worker_phase;
+static atomic_t isr_probe_count;
+
+/* Expiry callbacks run in timer-ISR context: no thread scheduling is
+ * involved, so this counter isolates ISR delivery from thread wake.
+ */
+static void isr_probe_expiry(struct k_timer *timer)
+{
+	ARG_UNUSED(timer);
+	atomic_inc(&isr_probe_count);
+}
+
+K_TIMER_DEFINE(isr_probe_timer, isr_probe_expiry, NULL);
 
 struct poll_snapshot {
 	uint32_t cycles;
@@ -134,6 +146,44 @@ ZTEST(artinchip_kernel, test_timeout)
 	k_sem_reset(&signal);
 	zassert_equal(k_sem_take(&signal, K_MSEC(25)), -EAGAIN);
 	zassert_true(k_uptime_get() - start >= 25);
+}
+
+ZTEST(artinchip_kernel, test_timer_isr_delivery)
+{
+	/* While this thread spins without yielding, only a 5 ms periodic
+	 * k_timer is armed. Its expiry runs in timer-ISR context, so a
+	 * growing count proves timeout interrupts are delivered during the
+	 * spin even if no thread wake/preemption is involved. A zero count
+	 * at budget expiry points at ISR delivery/arming instead.
+	 */
+	struct poll_snapshot before = poll_snapshot_get();
+	uint32_t start = before.cycles;
+	uint32_t budget = k_ms_to_cyc_ceil32(1000);
+	const char *reason = "iterations";
+
+	atomic_clear(&isr_probe_count);
+	k_timer_start(&isr_probe_timer, K_MSEC(5), K_MSEC(5));
+	for (uint32_t spins = 0; spins < 10000000U; spins++) {
+		if (atomic_get(&isr_probe_count) >= 20) {
+			reason = "isr";
+			break;
+		}
+		if ((uint32_t)(k_cycle_get_32() - start) >= budget) {
+			reason = "cycles";
+			break;
+		}
+		compiler_barrier();
+	}
+	k_timer_stop(&isr_probe_timer);
+	/* Capture before printing: UART can change timing. */
+	struct poll_snapshot after = poll_snapshot_get();
+	unsigned int count = (unsigned int)atomic_get(&isr_probe_count);
+
+	printk("KERNEL-ISRPROBE schema=1 reason=%s count=%u priority=%d "
+	       "tick_delta=%lld cycle_delta=%u\n", reason, count,
+	       k_thread_priority_get(k_current_get()),
+	       (long long)(after.ticks - before.ticks), after.cycles - before.cycles);
+	zassert_true(count >= 20, "no timer-ISR expiry observed while spinning");
 }
 
 ZTEST(artinchip_kernel, test_timer_preemption)

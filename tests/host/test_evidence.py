@@ -34,7 +34,7 @@ class EvidenceTests(unittest.TestCase):
         def cases(name):
             if name == "artinchip.kernel":
                 return [name + ".artinchip_kernel." + case for case in
-                        ("owned_memory", "timer_preemption", "timeout", "thread_semaphore", "module")]
+                        ("owned_memory", "timer_isr_delivery", "timer_preemption", "timeout", "thread_semaphore", "module")]
             if name == "artinchip.fpu":
                 return [name + ".artinchip_fpu.context_registers"]
             if name.startswith("artinchip.clic."):
