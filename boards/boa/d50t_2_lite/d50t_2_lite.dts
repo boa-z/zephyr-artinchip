@@ -1,0 +1,30 @@
+/* SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2022-2026, Artinchip Technology Co., Ltd
+ * Derived from the D50T product configuration; see docs/provenance.yml.
+ * Modified: SRAM-only Zephyr candidate, no peripheral or PSRAM initialization.
+ */
+/dts-v1/;
+#include <artinchip/d133ecs.dtsi>
+
+/ {
+	model = "D50T-2-Lite D133ECS software candidate";
+	compatible = "boa,d50t-2-lite";
+
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,console = &uart0;
+	};
+
+	/* Subset of SRAM S0: leave low 256 KiB and high 256 KiB untouched. */
+	sram0: memory@30080000 {
+		compatible = "mmio-sram";
+		reg = <0x30080000 DT_SIZE_K(512)>;
+	};
+};
+
+/* Bootloader supplies PA0/PA1 func5 and the 48 MHz peripheral clock. */
+&uart0 {
+	clock-frequency = <DT_FREQ_M(48)>;
+	current-speed = <115200>;
+	status = "okay";
+};

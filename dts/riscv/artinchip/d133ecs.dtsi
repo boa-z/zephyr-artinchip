@@ -1,0 +1,61 @@
+/* SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2022, Artinchip Technology Co., Ltd
+ * Copyright (C) 2017-2019 Alibaba Group Holding Limited
+ * Modified: register facts from aic_soc.h/core_rv32.h/sys_freq.c represented
+ * as Zephyr devicetree; no SDK runtime implementation is included.
+ */
+#include <freq.h>
+#include <mem.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		timebase-frequency = <DT_FREQ_M(4)>;
+
+		cpu0: cpu@0 {
+			device_type = "cpu";
+			compatible = "xuantie,e907", "riscv";
+			reg = <0>;
+			riscv,isa-base = "rv32i";
+			riscv,isa-extensions = "i", "m", "a", "f", "d", "c", "zicsr", "zifencei";
+			i-cache-line-size = <32>;
+			d-cache-line-size = <32>;
+			status = "okay";
+		};
+	};
+
+	soc {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		clic: interrupt-controller@e0800000 {
+			compatible = "riscv,clic";
+			reg = <0xe0800000 0x5000>;
+			#address-cells = <0>;
+			#interrupt-cells = <2>;
+			interrupt-controller;
+		};
+
+		mtimer: timer@e000bff8 {
+			compatible = "riscv,machine-timer";
+			reg = <0xe000bff8 8>, <0xe0004000 8>;
+			reg-names = "mtime", "mtimecmp";
+			interrupts-extended = <&clic 7 0>;
+		};
+
+		uart0: serial@18710000 {
+			compatible = "ns16550";
+			reg = <0x18710000 0x1000>;
+			reg-shift = <2>;
+			interrupt-parent = <&clic>;
+			interrupts = <76 0>;
+			status = "disabled";
+		};
+	};
+};

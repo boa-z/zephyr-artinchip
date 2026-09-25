@@ -9,6 +9,8 @@ import shutil
 import subprocess
 import sys
 
+from apply_patches import verify
+
 ZEPHYR_REVISION = "839728050444f90d06870b5fc9bbbda106d91459"
 
 
@@ -62,8 +64,10 @@ def main():
         report["errors"].append("west cannot resolve Zephyr")
     else:
         report["zephyr"] = git_identity(Path(zephyr["stdout"]))
-        if report["zephyr"]["head"] != ZEPHYR_REVISION or report["zephyr"]["dirty"]:
-            report["errors"].append("Zephyr baseline differs or is dirty")
+        try:
+            report["patch_series"] = verify(Path(zephyr["stdout"]))
+        except (ValueError, OSError, subprocess.CalledProcessError) as error:
+            report["errors"].append(str(error))
     report["status"] = "FAIL" if report["errors"] else "PASS"
     text = json.dumps(report, indent=2, ensure_ascii=False)
     if args.output:

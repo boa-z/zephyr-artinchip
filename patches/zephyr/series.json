@@ -1,0 +1,15 @@
+{
+  "base": "839728050444f90d06870b5fc9bbbda106d91459",
+  "staging_commit": "1a42179e57c7dc50c481210edcfe3a100c686835",
+  "patches": [
+    {
+      "path": "patches/zephyr/0001-clic-legacy-mmio-layout.patch",
+      "sha256": "d493c9797d801138ef5017f7bbfe418073bcd902e7cb08698dafe78fb9454339"
+    }
+  ],
+  "files": {
+    "drivers/interrupt_controller/Kconfig.clic": "e79ec7183eea820950b0692b7ba62225e4b2e41b",
+    "drivers/interrupt_controller/intc_clic.c": "9442198bbfd876b2b817491423634de0a47cd237",
+    "drivers/interrupt_controller/intc_clic.h": "a392dc3deac98441cca1896b1784519b57f3e9aa"
+  }
+}

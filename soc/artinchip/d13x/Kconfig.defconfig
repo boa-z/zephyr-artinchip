@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+if SOC_SERIES_D13X
+
+config NUM_IRQS
+	default 96
+
+config SYS_CLOCK_TICKS_PER_SEC
+	default 1000
+
+config SYS_CLOCK_HW_CYCLES_PER_SEC
+	default $(dt_node_int_prop_int,/cpus,timebase-frequency)
+
+config RISCV_MCAUSE_EXCEPTION_MASK
+	default 0xFFF
+
+config ARCH_SW_ISR_TABLE_ALIGN
+	default 64
+
+# Legacy driver reads the implemented priority width from CLICINFO.
+# Reserve zero bits for interrupt nesting in the initial candidate.
+config CLIC_PARAMETER_MNLBITS
+	default 0
+
+endif

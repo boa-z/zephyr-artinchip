@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+config SOC_SERIES_D13X
+	select RISCV
+	select CPU_XUANTIE_E907
+	select SOC_RESET_HOOK
+	select LEGACY_CLIC_MEMORYMAP_ACCESS
+	select CLIC_LEGACY_MMIO_LAYOUT
+	select CLIC_SMCLICCONFIG_EXT
+	select CLIC_SMCLICSHV_EXT
+	select RISCV_NO_MTVAL_ON_FP_TRAP
+	select RISCV_NO_MTVAL_ON_FP_TRAP_UNALIGNED
+
+if SOC_SERIES_D13X
+
+config ARTINCHIP_D13X_BOOT_CONTRACT
+	bool "Build a candidate requiring the documented bootloader handoff"
+	help
+	  This is a software candidate, not a verified board boot path. The loader
+	  must enter in M-mode with SRAM accessible, interrupt delivery disabled,
+	  instruction coherency established, and UART0 clock/pins configured.
+	  Read docs/bringup/d13x-boot-contract.md before any hardware use.
+
+endif

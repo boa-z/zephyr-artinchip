@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: Apache-2.0
+config BOARD_D50T_2_LITE
+	select SOC_D133ECS

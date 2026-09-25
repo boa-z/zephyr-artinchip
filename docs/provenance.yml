@@ -1,0 +1,608 @@
+schema_version: 1
+human_signoff_pending: true
+review_meaning: File-level source/license/transformation audit only; not legal approval, hardware proof
+  or human DCO.
+files:
+- path: CMakeLists.txt
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: Kconfig
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: boards/boa/d50t_2_lite/Kconfig.d50t_2_lite
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: boards/boa/d50t_2_lite/board.yml
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: boards/boa/d50t_2_lite/d50t_2_lite.dts
+  kind: derived
+  license: Apache-2.0
+  license_basis: Per-file SPDX Apache-2.0 in cited sources; original notices preserved; human legal/DCO
+    review pending.
+  rights_holders:
+  - ArtInChip Technology Co., Ltd
+  - D50T product contributors
+  changes: Use board UART configuration and bounded SRAM subset; loader assumptions documented, PSRAM
+    off.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+  sources:
+  - project: boa-w/luban-lite-jc-d50t-rev
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: target/d13x/d50t-2-lite/pinmux.c
+    sha256: bdd40aa54e1dfbae5925643ca93a65c2c0a5da61413874df8c350c772cb7287d
+  - project: boa-w/luban-lite-jc-d50t-rev
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: target/d13x/d50t-2-lite/sys_clk.c
+    sha256: 32ded1200e402b8628257313a40033b9a87973cfe2664bda4b342c2a16622fe8
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/sys/d13x/link_script/gcc_aic_nopsram.ld.S
+    sha256: 02ec9fea77bc413d4e60e2a9404f1382e24212e5b41c6ada8d416cf635942dd2
+- path: boards/boa/d50t_2_lite/d50t_2_lite_d133ecs.yaml
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: boards/boa/d50t_2_lite/d50t_2_lite_defconfig
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: dts/bindings/vendor-prefixes.txt
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: dts/riscv/artinchip/d133ecs.dtsi
+  kind: derived
+  license: Apache-2.0
+  license_basis: Per-file SPDX Apache-2.0 in cited sources; original notices preserved; human legal/DCO
+    review pending.
+  rights_holders:
+  - ArtInChip Technology Co., Ltd
+  - Alibaba Group Holding Limited
+  changes: Express peripheral addresses, IRQs, clock and cache-line facts in Zephyr DTS; no copied HAL.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+  sources:
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/sys/d13x/include/aic_soc.h
+    sha256: 12046870569207827cbbe642e03a0902f21e7b19008a32dbee969e53bb401423
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/sys/d13x/include/core_rv32.h
+    sha256: bec9ac232f4dc6d66d4af130af4894508d04984536965804524229838478151f
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/sys/d13x/sys_freq.c
+    sha256: 394058804f8934870d106e605930a46f00a41f0852a3873285a14c093d242d11
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/sys/d13x/Kconfig.chip
+    sha256: 33e4b2404a305a83742d890dc15e7fb3c203c765a8ea7fa2554619f8a4da3d59
+- path: include/artinchip/module.h
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: patches/zephyr/0001-clic-legacy-mmio-layout.patch
+  kind: derived
+  license: Apache-2.0
+  license_basis: Per-file SPDX Apache-2.0 in cited sources; original notices preserved; human legal/DCO
+    review pending.
+  rights_holders:
+  - Tokita, Hiroshi
+  - Andes Technology Corporation
+  - Alibaba Group Holding Limited
+  changes: 'Minimal prerequisite diff: opt-in legacy bit layout and MMIO threshold, preserving original
+    file headers.'
+  dependencies: []
+  review_status: reviewed
+  sources:
+  - project: zephyrproject-rtos/zephyr
+    revision: 839728050444f90d06870b5fc9bbbda106d91459
+    path: drivers/interrupt_controller/Kconfig.clic
+    sha256: 0758d58e093e1200c44c58c60a14421df4d396bdd68c6dcb6d004a82eb71bcb3
+  - project: zephyrproject-rtos/zephyr
+    revision: 839728050444f90d06870b5fc9bbbda106d91459
+    path: drivers/interrupt_controller/intc_clic.c
+    sha256: 24f240344eb2e14cf3859c2cefd004f6e98497a5e9c8c55a831636caafed3767
+  - project: zephyrproject-rtos/zephyr
+    revision: 839728050444f90d06870b5fc9bbbda106d91459
+    path: drivers/interrupt_controller/intc_clic.h
+    sha256: ccd2ebb45d47e4eb07cb7c092d86d2329d96a576e1c433fb242216da8615c335
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/sys/d13x/include/core_rv32.h
+    sha256: bec9ac232f4dc6d66d4af130af4894508d04984536965804524229838478151f
+- path: patches/zephyr/series.json
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: samples/bringup/CMakeLists.txt
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: samples/bringup/boards/d50t_2_lite_d133ecs.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: samples/bringup/prj.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: samples/bringup/src/main.c
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: samples/bringup/tests.yaml
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: scripts/apply_patches.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: scripts/check_provenance.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: scripts/environment.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: scripts/install_sdk.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: scripts/package_candidate.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: soc/artinchip/d13x/CMakeLists.txt
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: soc/artinchip/d13x/Kconfig
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: soc/artinchip/d13x/Kconfig.defconfig
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: soc/artinchip/d13x/Kconfig.soc
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: soc/artinchip/d13x/reset.S
+  kind: derived
+  license: Apache-2.0
+  license_basis: Per-file SPDX Apache-2.0 in cited sources; original notices preserved; human legal/DCO
+    review pending.
+  rights_holders:
+  - ArtInChip Technology Co., Ltd
+  - Alibaba Group Holding Limited
+  changes: Rewrite register facts as stackless Zephyr hook; clear hardware stacking only; no SDK trap/cache
+    runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+  sources:
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/sys/d13x/system.c
+    sha256: 67ae3f9b14f8e91be9683589fb1a2676754ed59b993511aea9805f1f0cd16ec4
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/sys/d13x/startup_gcc.S
+    sha256: 6818ebde5aab0661ea7482f82644e93fa526d61f63e5265b0e245f8029030253
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/sys/d13x/include/core_rv32.h
+    sha256: bec9ac232f4dc6d66d4af130af4894508d04984536965804524229838478151f
+- path: soc/artinchip/d13x/soc.yml
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: src/module.c
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: tests/fpu/CMakeLists.txt
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/fpu/boards/d50t_2_lite_d133ecs.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/fpu/prj.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/fpu/src/main.c
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/fpu/src/probe.S
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/fpu/tests.yaml
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/host/test_package.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: tests/host/test_provenance.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: tests/kernel/CMakeLists.txt
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/kernel/boards/d50t_2_lite_d133ecs.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/kernel/prj.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/kernel/src/main.c
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/kernel/tests.yaml
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: west.yml
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: zephyr/module.yml
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; not a copied SDK runtime.
+  dependencies: []
+  review_status: reviewed
+- path: docs/bringup/d13x-preflight.md
+  kind: reference-only
+  license: Apache-2.0
+  license_basis: Original documentation referencing facts from SPDX Apache-2.0 sources; no external code
+    copied.
+  rights_holders:
+  - ArtInChip Technology Co., Ltd
+  - Project contributors
+  changes: Summarize evidence and distinguish hardware obligations.
+  dependencies: []
+  sources:
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/sys/d13x/rtconfig.py
+    sha256: 47306554115503dd4baf787f75dd92305297fed09d893009c7f7a4f6ddf7627b
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/sys/d13x/time.c
+    sha256: e18a5e376fd6007a9d4cb0638aee5be654d7b6fad1be965b971e4de1b1daa905
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/hal/uart/aic_hal_uart.c
+    sha256: 1487aeeff678edfdb7fd29061387f47cab2a4de5f139cfd0da0ecc92ada44ce7
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: bsp/artinchip/include/hal/aic_hal_uart.h
+    sha256: 2277be1dd796975fc93a8a74c7140ec1c05d7d82f85fbb573af287c000f08bdf
+  - project: boa-w/luban-lite-jc-d50t-rev
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: target/d13x/d50t-2-lite/board.c
+    sha256: 79dd59ba5cf82a0532bc7e6f2a94a7f8c6b45e59db59f9d66a400fea200dd363
+  review_status: reviewed
+- path: docs/bringup/d13x-boot-contract.md
+  kind: reference-only
+  license: Apache-2.0
+  license_basis: Original documentation referencing facts from SPDX Apache-2.0 sources; no external code
+    copied.
+  rights_holders:
+  - ArtInChip Technology Co., Ltd
+  - Project contributors
+  changes: Summarize evidence and distinguish hardware obligations.
+  dependencies: []
+  sources:
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: application/baremetal/bootloader/lib/common/boot_app.c
+    sha256: dce5bcb1c233b51aef0e0a06a10f4f050d09058378109cae0c0437462f18897d
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: application/baremetal/bootloader/cmd/ram_boot.c
+    sha256: 6b5cd02ab101bfcf1a97042c1e2954a9ce8f1ff69fb458e3eb823bad64c61198
+  review_status: reviewed
+- path: LICENSE
+  kind: copied
+  license: Apache-2.0
+  license_basis: Unmodified Apache license text from the pinned Zephyr tree.
+  rights_holders:
+  - Apache Software Foundation
+  changes: None.
+  dependencies: []
+  sources:
+  - project: zephyrproject-rtos/zephyr
+    revision: 839728050444f90d06870b5fc9bbbda106d91459
+    path: LICENSE
+    sha256: c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08
+  review_status: reviewed

@@ -4,7 +4,8 @@ Date: 2026-09-25. Zephyr is pinned to official commit
 `839728050444f90d06870b5fc9bbbda106d91459` (source VERSION 4.4.99).
 The owner's separate `boa-z/zephyr` checkout is at that commit and was clean
 at entry. Normal dependencies use a separate `zephyr-upstream` clone with the
-official remote. No Zephyr core patches are applied.
+official remote. Initial bootstrap used no patches. The final D13x candidate applies the explicit
+legacy CLIC prerequisite in patches/zephyr; its exact base and diff are verified.
 
 Luban-Lite SoC reference: `boa-w/luban-lite`, commit
 `c5807f9e7d18292f920dafaa018b8174635085c4`. That Git object is available locally

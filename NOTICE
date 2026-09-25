@@ -1,0 +1,15 @@
+zephyr-artinchip
+
+Derived hardware descriptions and reset-hook register facts preserve notices
+from ArtInChip Technology Co., Ltd (2022-2026) and Alibaba Group Holding Limited
+(2017-2019), under Apache-2.0. Exact originals, revisions, per-file SHA-256 and
+transformations are recorded in docs/provenance.yml. No whole SDK or RT-Thread
+runtime is included. This is not a clean-room authorship claim.
+
+The prerequisite patch modifies upstream Zephyr CLIC files retaining notices of
+Tokita, Hiroshi (2021) and Andes Technology Corporation (2025). Its legacy-layout
+facts refer to the Alibaba CSI header. Other Zephyr code remains an external,
+pinned dependency with its own licenses/notices. The SDK GCC runtime remains an
+external toolchain library; its linked members are identified in candidate.json.
+Original project files use Apache-2.0. Human ownership, license compatibility,
+DCO review and sign-off remain pending before external redistribution/upstreaming.

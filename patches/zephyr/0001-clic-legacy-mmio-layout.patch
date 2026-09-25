@@ -1,0 +1,63 @@
+From 1a42179e57c7dc50c481210edcfe3a100c686835 Mon Sep 17 00:00:00 2001
+From: boa-z <boa-z@outlook.com>
+Date: Fri, 25 Sep 2026 10:04:06 +0800
+Subject: [PATCH] drivers: interrupt_controller: support legacy CLIC MMIO
+ layout
+
+The D13x E907 uses shifted CLICCFG level bits and a memory-mapped threshold. Add a layout option without identifying the core as Nuclei. Derivation: Apache-2.0 Alibaba CSI core_rv32.h in Luban-Lite c5807f9e7d18292f920dafaa018b8174635085c4. Hardware validation and human sign-off pending.
+
+Assisted-by: Codex:GPT-6
+---
+ drivers/interrupt_controller/Kconfig.clic | 8 ++++++++
+ drivers/interrupt_controller/intc_clic.c  | 2 +-
+ drivers/interrupt_controller/intc_clic.h  | 2 +-
+ 3 files changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/interrupt_controller/Kconfig.clic b/drivers/interrupt_controller/Kconfig.clic
+index 1bae5b36ebe..e79ec7183ee 100644
+--- a/drivers/interrupt_controller/Kconfig.clic
++++ b/drivers/interrupt_controller/Kconfig.clic
+@@ -66,6 +66,14 @@ config LEGACY_CLIC_MEMORYMAP_ACCESS
+ 	  Enables legacy CLIC, allowing access to CLIC registers through
+ 	  memory-mapped access instead of indirect CSR access.
+ 
++config CLIC_LEGACY_MMIO_LAYOUT
++	bool "Legacy CLICCFG and memory-mapped interrupt threshold"
++	depends on LEGACY_CLIC_MEMORYMAP_ACCESS
++	help
++	  Use CLICCFG bit 0 as reserved, level bits at 1..4, CLICINFO at
++	  offset 4, and MINTTHRESH at offset 8 (threshold in bits 24..31).
++	  This legacy layout is used by the XuanTie E907 in ArtInChip D13x.
++
+ config LEGACY_CLIC
+ 	bool "Use the legacy clic specification"
+ 	depends on RISCV_HAS_CLIC
+diff --git a/drivers/interrupt_controller/intc_clic.c b/drivers/interrupt_controller/intc_clic.c
+index 0b28b122e88..9442198bbfd 100644
+--- a/drivers/interrupt_controller/intc_clic.c
++++ b/drivers/interrupt_controller/intc_clic.c
+@@ -274,7 +274,7 @@ static int clic_init(const struct device *dev)
+ {
+ 	struct clic_data *data = dev->data;
+ 
+-	if (IS_ENABLED(CONFIG_NUCLEI_ECLIC)) {
++	if (IS_ENABLED(CONFIG_NUCLEI_ECLIC) || IS_ENABLED(CONFIG_CLIC_LEGACY_MMIO_LAYOUT)) {
+ 		/* Configure the interrupt level threshold. */
+ 		union CLICMTH clicmth = {.b = {.mth = 0x0}};
+ 
+diff --git a/drivers/interrupt_controller/intc_clic.h b/drivers/interrupt_controller/intc_clic.h
+index b63e40b31cd..a392dc3deac 100644
+--- a/drivers/interrupt_controller/intc_clic.h
++++ b/drivers/interrupt_controller/intc_clic.h
+@@ -45,7 +45,7 @@
+ /* CLIC register structure */
+ union CLICCFG {
+ 	struct {
+-#ifdef CONFIG_NUCLEI_ECLIC
++#if defined(CONFIG_NUCLEI_ECLIC) || defined(CONFIG_CLIC_LEGACY_MMIO_LAYOUT)
+ 		uint32_t _reserved0: 1;
+ #endif /* CONFIG_NUCLEI_ECLIC */
+ 		/** number of interrupt level bits */
+-- 
+2.55.0.windows.3
+

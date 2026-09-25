@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+config SOC_FAMILY_ARTINCHIP
+	bool
+
+config SOC_FAMILY
+	default "artinchip" if SOC_FAMILY_ARTINCHIP
+
+config SOC_SERIES_D13X
+	bool
+	select SOC_FAMILY_ARTINCHIP
+
+config SOC_SERIES
+	default "d13x" if SOC_SERIES_D13X
+
+config SOC_D133ECS
+	bool
+	select SOC_SERIES_D13X
+
+config SOC
+	default "d133ecs" if SOC_D133ECS

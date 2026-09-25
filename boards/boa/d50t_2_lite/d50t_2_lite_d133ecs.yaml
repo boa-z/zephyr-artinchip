@@ -1,0 +1,12 @@
+identifier: d50t_2_lite/d133ecs
+name: D50T-2-Lite D133ECS software candidate
+type: mcu
+arch: riscv
+toolchain:
+  - zephyr
+ram: 512
+supported:
+  - uart
+  - fpu
+testing:
+  default: false

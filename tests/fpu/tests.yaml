@@ -2,6 +2,7 @@ tests:
   artinchip.fpu:
     platform_allow:
       - qemu_riscv32
+      - d50t_2_lite/d133ecs
     integration_platforms:
       - qemu_riscv32
     tags:

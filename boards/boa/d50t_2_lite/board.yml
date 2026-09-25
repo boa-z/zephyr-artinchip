@@ -1,0 +1,6 @@
+board:
+  name: d50t_2_lite
+  full_name: D50T-2-Lite D133ECS (software candidate)
+  vendor: boa
+  socs:
+    - name: d133ecs
