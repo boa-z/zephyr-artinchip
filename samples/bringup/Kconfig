@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+mainmenu "ArtInChip bringup"
+source "Kconfig.zephyr"
+
+config ARTINCHIP_BRINGUP_DROP_SIGNAL
+	bool "Inject missing worker completion for harness testing"
+	depends on BOARD_QEMU_RISCV32
+	default n
+	help
+	  Negative-test injection only. The console must report failure when the
+	  worker never signals completion. Never enable in a delivery candidate.

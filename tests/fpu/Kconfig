@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+mainmenu "FPU scheduling stress"
+source "Kconfig.zephyr"
+
+config AIC_FPU_PEER_SPIN_LIMIT
+	int "Maximum assembly iterations awaiting a peer epoch"
+	range 1 2147483647
+	default 5000000
+	help
+	  Diagnostic loop bound, not a portable duration. Slow emulators and
+	  different CPU frequencies may need a reviewed value. External harness
+	  wall-clock deadlines remain independent of this bound and target time.

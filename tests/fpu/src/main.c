@@ -51,7 +51,7 @@ static void stress(void *arg, void *unused1, void *unused2)
 	while (atomic_get(&stop) == 0) {
 		atomic_inc(&epochs[id]);
 		int result = aic_fpu_preempt_probe(patterns[id], observed[id],
-						  &epochs[1 - id], 5000000U);
+						  &epochs[1 - id], CONFIG_AIC_FPU_PEER_SPIN_LIMIT);
 		if (atomic_get(&stop) != 0) {
 			break;
 		}
@@ -72,6 +72,9 @@ static void stress(void *arg, void *unused1, void *unused2)
 ZTEST(artinchip_fpu, test_context_registers)
 {
 	int64_t deadline = k_uptime_get() + 120000;
+
+	printk("FPU: peer spin limit %d iterations; target deadline 120 s\n",
+	       CONFIG_AIC_FPU_PEER_SPIN_LIMIT);
 
 	for (size_t thread = 0; thread < 2; ++thread) {
 		for (size_t reg = 0; reg < 32; ++reg) {

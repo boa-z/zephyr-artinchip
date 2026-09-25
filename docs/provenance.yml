@@ -645,3 +645,33 @@ files:
   changes: Capture the actually validated Windows Python environment.
   dependencies: []
   review_status: reviewed
+- path: samples/bringup/Kconfig
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code; repository LICENSE. Human ownership/DCO review pending.
+  rights_holders:
+  - Project contributors
+  changes: Explicit runtime failure handling and bounded negative harness probes.
+  dependencies:
+  - Pinned Zephyr APIs and local Python runtime
+  review_status: reviewed
+- path: tests/fpu/Kconfig
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code; repository LICENSE. Human ownership/DCO review pending.
+  rights_holders:
+  - Project contributors
+  changes: Explicit runtime failure handling and bounded negative harness probes.
+  dependencies:
+  - Pinned Zephyr APIs and local Python runtime
+  review_status: reviewed
+- path: scripts/runtime_probes.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code; repository LICENSE. Human ownership/DCO review pending.
+  rights_holders:
+  - Project contributors
+  changes: Explicit runtime failure handling and bounded negative harness probes.
+  dependencies:
+  - Pinned Zephyr APIs and local Python runtime
+  review_status: reviewed
