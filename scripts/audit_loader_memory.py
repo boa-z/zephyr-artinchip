@@ -4,6 +4,7 @@ import argparse
 import io
 import json
 from pathlib import Path
+import re
 import struct
 import subprocess
 import sys
@@ -50,6 +51,13 @@ def analyze(sdk, audit_path, objdump):
     elf = ELFFile(io.BytesIO(elf_data))
     symbols = {s.name: {"start": s["st_value"], "size": s["st_size"]}
                for s in elf.get_section_by_name(".symtab").iter_symbols() if s["st_value"]}
+    map_bindings = {}
+    for name in ("g_base_irqstack", "g_top_irqstack", "g_base_normalstack",
+                 "g_top_normalstack", "heap_def", "boot_app", "spl_load_fit_image"):
+        matches = re.findall(r"^\s*(0x[0-9a-fA-F]+)\s+" + name + r"\s*$", map_text, re.M)
+        if len(matches) != 1 or int(matches[0], 16) != symbols[name]["start"]:
+            raise ValueError("loader map/ELF symbol mismatch: " + name)
+        map_bindings[name] = symbols[name]["start"]
     trace = []
     for name, path, marker, symbol in TRACE:
         source = sdk / path
@@ -144,6 +152,7 @@ def analyze(sdk, audit_path, objdump):
             "input_files": {**inputs, str(map_path): record(map_path.read_bytes())},
             "candidate_bindings": audit["candidates"], "trace": trace, "regions": regions,
             "linked_heap_table": heap_records, "linked_disassembly": disassembly,
+            "map_elf_symbol_bindings": map_bindings,
             "disassembler": {"path": str(objdump), **record(objdump.read_bytes())},
             "cpu_handoff": {"source_sequence": ["dcache clean", "icache invalidate", "local IRQ disable", "ep(dev, boot_arg)"],
                             "unknown": ["other bus masters quiesced", "cache/map/TCM runtime state", "exact compiled-source/config receipt", "stack high water"],

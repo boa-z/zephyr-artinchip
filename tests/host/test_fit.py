@@ -4,7 +4,36 @@ from pathlib import Path
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
-from zephyr_fit import encode, verify, decode, u32
+from zephyr_fit import encode, verify, decode, u32, reconstruct_binary
+from unittest.mock import Mock
+
+
+class Section(dict):
+    def data(self):
+        return b"x" * self["sh_size"]
+
+
+class BinaryReconstructionTests(unittest.TestCase):
+    args = ["--gap-fill", "0xFF", "--output-target=binary",
+            "--remove-section=.comment", "--remove-section=COMMON"]
+
+    def elf(self, start=4):
+        return Mock(iter_sections=lambda: iter([
+            Section(sh_flags=2, sh_type="SHT_PROGBITS", sh_size=2, sh_addr=0),
+            Section(sh_flags=2, sh_type="SHT_PROGBITS", sh_size=2, sh_addr=start),
+            Section(sh_flags=2, sh_type="SHT_NOBITS", sh_size=10, sh_addr=6)]))
+
+    def test_objcopy_ff_padding_not_elf_segment_zero_padding(self):
+        self.assertEqual(reconstruct_binary(self.elf(), 0, 6, self.args), b"xx\xff\xffxx")
+
+    def test_unknown_objcopy_profile(self):
+        with self.assertRaisesRegex(ValueError, "objcopy profile"):
+            reconstruct_binary(self.elf(), 0, 6, [])
+
+    def test_overflow_and_overlap(self):
+        for start in (1, 5):
+            with self.assertRaises(ValueError):
+                reconstruct_binary(self.elf(start), 0, 6, self.args)
 
 
 class FitTests(unittest.TestCase):

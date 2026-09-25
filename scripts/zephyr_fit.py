@@ -6,7 +6,7 @@ from pathlib import Path
 import struct
 import zlib
 
-from evidence import candidate_records, record
+from evidence import candidate_records, check_candidate_receipt, record
 from package_candidate import inspect_elf, validate_segments
 
 
@@ -22,6 +22,25 @@ def string(value):
     return value.encode("ascii") + b"\0"
 
 
+def reconstruct_binary(elf, load, size, arguments):
+    if arguments != ["--gap-fill", "0xFF", "--output-target=binary",
+                     "--remove-section=.comment", "--remove-section=COMMON"]:
+        raise ValueError("unsupported candidate objcopy profile")
+    reconstructed = bytearray(b"\xff" * size)
+    used = []
+    for section in elf.iter_sections():
+        if section["sh_flags"] & 2 and section["sh_type"] != "SHT_NOBITS" and section["sh_size"]:
+            offset = section["sh_addr"] - load
+            length = section["sh_size"]
+            if offset < 0 or offset + length > size:
+                raise ValueError("allocated section outside binary span")
+            if any(offset < end and start < offset + length for start, end in used):
+                raise ValueError("overlapping allocated sections")
+            used.append((offset, offset + length))
+            reconstructed[offset:offset + length] = section.data()
+    return bytes(reconstructed)
+
+
 def candidate(path, audit_path):
     path = Path(path).resolve()
     manifest = json.loads(path.read_text(encoding="utf-8"))
@@ -33,6 +52,7 @@ def candidate(path, audit_path):
     for name, expected in candidate_records(manifest).items():
         if record((path.parent / name).read_bytes()) != expected:
             raise ValueError("candidate file changed: " + name)
+    check_candidate_receipt(manifest, json.loads((path.parent / "build-provenance.json").read_text(encoding="utf-8")))
     elf = inspect_elf(path.parent / "zephyr.elf")
     if elf != manifest["elf"] or elf["type"] != "ET_EXEC" or validate_segments(elf["segments"], elf["entry"]):
         raise ValueError("candidate ELF metadata mismatch")
@@ -49,15 +69,13 @@ def candidate(path, audit_path):
     end = max(s["address"] + s["file_size"] for s in segments if s["file_size"])
     if len(payload) != end - load:
         raise ValueError("raw binary span does not match ELF file spans")
-    # Independently reconstruct allocated bytes, including zero-filled segment gaps.
+    # objcopy fills BETWEEN allocated sections, not PT_LOAD padding. The
+    # controlled Zephyr receipt explicitly uses --gap-fill 0xFF.
     from elftools.elf.elffile import ELFFile
     with (path.parent / "zephyr.elf").open("rb") as stream:
-        reconstructed = bytearray(len(payload))
-        for seg in ELFFile(stream).iter_segments():
-            if seg["p_type"] == "PT_LOAD" and seg["p_filesz"]:
-                offset = seg["p_paddr"] - load
-                reconstructed[offset:offset + seg["p_filesz"]] = seg.data()
-    if bytes(reconstructed) != payload:
+        reconstructed = reconstruct_binary(ELFFile(stream), load, len(payload),
+                                           manifest["binary_command"]["arguments"])
+    if reconstructed != payload:
         raise ValueError("binary differs from ELF PT_LOAD bytes")
     if any(load < r["end"] and r["start"] < end for r in audit["reference_loader_ranges"]):
         raise ValueError("raw binary span overlaps loader")
