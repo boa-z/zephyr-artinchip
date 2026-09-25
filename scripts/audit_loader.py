@@ -191,7 +191,7 @@ def audit(product, loader, candidates):
     base, sections, symbols, spans = loader_layout(elf_data, reference)
     comparison = compare_bytes(packaged, reference, base, sections, symbols)
     results = {}
-    for app in ("bringup", "kernel", "fpu"):
+    for app in ("bringup", "kernel", "fpu", *(["handoff_probe"] if (candidates / "handoff_probe").exists() else [])):
         directory = candidates / app
         manifest = json.loads((directory / "candidate.json").read_text())
         if manifest["application"] != app:
@@ -210,13 +210,18 @@ def audit(product, loader, candidates):
                            for s in segments]
         results[app] = {"source_at_build": manifest["source_at_build"]["head"],
                         "elf": manifest["files"]["zephyr.elf"], "entry": entry,
-                        "load_spans": candidate_spans, "overlaps": overlaps(candidate_spans, spans)}
+                        "load_spans": candidate_spans,
+                        "file_spans": [{"start": s["address"], "end": s["address"] + s["file_size"]}
+                                       for s in segments if s["file_size"]],
+                        "overlaps": overlaps(candidate_spans, spans)}
     blocked = []
     if not comparison["exact_match"]:
         blocked.append("Packaged SPL differs from the supplied loader ELF/bin; static layout is reference-only.")
     if any(r["overlaps"] for r in results.values()):
         blocked.append("Candidate overlaps a known static loader range.")
     return {"schema_version": 1, "audit_status": "BLOCKED" if blocked else "PASS",
+            "static_memory_overlap": "fail" if any(r["overlaps"] for r in results.values()) else "pass",
+            "ram_ownership": "unverified",
             "scope": "local container, loader identity and known static spans only",
             "input_files": {str(image_paths[0]): record(image), str(product / "bootloader.bin"): record(packaged),
                             str(loader / "d13x.bin"): record(reference), str(loader / "d13x.elf"): record(elf_data)},
