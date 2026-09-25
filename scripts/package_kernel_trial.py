@@ -11,8 +11,9 @@ from image_roundtrip import BASELINE
 from test_image import replace_os, verify_replacement
 from zephyr_fit import encode, verify, reconstruct_binary
 
-ELF_SHA = 'e3b2e2340df91d82bcb073dddecca15f477442c8face7fda660cd5e2c3fbac88'
-BIN_SHA = '02a36a1ceaad5dac817bc79d2a9c1fd09e1f3757d45a5efb0881642407d9a83d'
+ELF_SHA = '0318470baa73cd7b1cf8fdce3d14fcca99ebbaef2cce056ee510e89a35300bf9'
+BIN_SHA = '7998208f7d43d5407cc08310637bd4b1a848a64ce4c51b06a538aa11c31e6b48'
+IMAGE_NAME = 'D50T_Z0_kernel_isr_diag.img'
 
 
 def package(reference, elf_data, raw):
@@ -49,7 +50,7 @@ def package(reference, elf_data, raw):
                   manual_experiment_ready=True, loadable_image=False,
                   elf=record(elf_data), binary=record(raw), entry=entry,
                   memory_start=0x40000000, memory_end=0x40000000 + segment['p_memsz'],
-                  limits='QEMU tests passed; physical kernel/timer acceptance pending full ztest result')
+                  limits='QEMU 6/6 passed; physical kernel/timer acceptance pending full ztest result')
     return output, fit, report
 
 
@@ -64,7 +65,7 @@ if __name__ == '__main__':
                                     (args.build/'zephyr.elf').read_bytes(),
                                     (args.build/'zephyr.bin').read_bytes())
         args.output.mkdir(parents=True, exist_ok=False)
-        path = args.output/'D50T_Z0_kernel_poll_diag.img'
+        path = args.output/IMAGE_NAME
         path.write_bytes(image)
         if path.read_bytes() != image:
             raise ValueError('written image differs')
