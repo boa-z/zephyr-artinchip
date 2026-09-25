@@ -40,7 +40,7 @@ items:
       kind: owner-supplied image path, aiburn report and pasted boot log
     - &id002
       path: docs/bringup/d13x-product-artifacts.json
-      sha256: c1aa930e4917164d99985dc7c9986ddffe50c6fdb6762e8e02ebbcb569edf9d2
+      sha256: 52f6b1f8b67635b8fcbb266523b30cef11de7f09077e64ed97abd458c2a9f5a6
       kind: read-only binary/container inspection
     required_evidence: Exact installed-image association/readback as needed and a matching September 21
       loader ELF/map or equivalent memory ownership evidence. The separate September 24 local loader ELF
@@ -219,6 +219,18 @@ items:
         __heap_start: '0x40c80000'
         g_top_irqstack: '0x40c3ff80'
       matches_product_bootloader_bin: false
+      binary_comparison:
+        equal_size_bytes: 253552
+        different_bytes: 10
+        banner_difference_bytes: 9
+        non_banner_difference:
+          raw_bin_offset: '0x3cca8'
+          packaged_byte: '01'
+          separate_build_byte: '00'
+          mapped_local_elf_address: '0x40c3cda8'
+          mapped_local_elf_section: .data
+          containing_local_symbol: rgb
+        conclusion: Not merely a build-date change; no equivalence or installed-state claim.
     evidence:
     - *id002
     limits: Separate September 24 build; DOES NOT match the packaged September 21 SPL. Do not use these

@@ -82,6 +82,12 @@ starting 0x40c00000, stack symbols in that PSRAM region and heap
 September 21 SPL. Matching the packaged September 21 binary to an ELF/map or
 equivalent memory ownership evidence is the next specific handoff requirement.
 
+The raw loader binaries have equal lengths and differ in ten bytes: nine belong
+to build date/time text, but one differs in initialized data at raw offset
+0x3cca8 (packaged 0x01, separate build 0x00). The newer ELF maps this byte to
+0x40c3cda8 within its rgb data symbol. Do not dismiss the mismatch as timestamps
+alone; no display configuration changes are made as part of this Z0 audit.
+
 The Zephyr candidates use a different entry/allocation in SRAM. Their current
 raw .bin files do not carry the FIT or whole-device AIC.FW container metadata.
 Do not substitute a raw bin for this product .img or modify the product output

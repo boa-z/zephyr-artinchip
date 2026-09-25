@@ -252,7 +252,21 @@
       "__heap_start": "0x40c80000",
       "g_top_irqstack": "0x40c3ff80"
     },
-    "matches_product_bootloader_bin": false
+    "matches_product_bootloader_bin": false,
+    "binary_comparison": {
+      "equal_size_bytes": 253552,
+      "different_bytes": 10,
+      "banner_difference_bytes": 9,
+      "non_banner_difference": {
+        "raw_bin_offset": "0x3cca8",
+        "packaged_byte": "01",
+        "separate_build_byte": "00",
+        "mapped_local_elf_address": "0x40c3cda8",
+        "mapped_local_elf_section": ".data",
+        "containing_local_symbol": "rgb"
+      },
+      "conclusion": "Not merely a build-date change; no equivalence or installed-state claim."
+    }
   },
   "files": {
     "output/d13x_d50t-2-lite_rt-thread_D50T-2-Lite/images/d13x_D50T-2-Lite_page_2k_block_128k_v1.0.0.img": {
