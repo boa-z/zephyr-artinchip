@@ -1,0 +1,17 @@
+sample:
+  name: ArtInChip module bringup
+tests:
+  artinchip.bringup:
+    platform_allow:
+      - qemu_riscv32
+    integration_platforms:
+      - qemu_riscv32
+    tags:
+      - kernel
+    harness: console
+    harness_config:
+      type: multi_line
+      ordered: true
+      regex:
+        - "MODULE: zephyr-artinchip"
+        - "BRINGUP: thread/semaphore/timeout PASS"

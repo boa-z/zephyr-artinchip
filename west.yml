@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+manifest:
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      path: zephyr-upstream
+      revision: 839728050444f90d06870b5fc9bbbda106d91459
+      import: true
+  self:
+    path: zephyr-artinchip
