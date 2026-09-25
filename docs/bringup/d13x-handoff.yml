@@ -22,7 +22,7 @@ items:
       decoded_intctlbits: 3
       configured_num_irqs: 96
       ten_second_observation: not reported
-      recovery_this_trial: not reported
+      recovery_this_trial: owner-confirmed normal after RESTORE_original_product.img
     evidence:
     - path: docs/bringup/d13x-zephyr-window-trial.md
     limits: Experimental product-window main reached; no default SRAM, timer precision,
@@ -221,7 +221,7 @@ items:
     classification: observed
     observer: owner report
     status: PARTIAL
-    value: Owner manually flashed all three H0 diagnostic trials with AiBurn and confirmed
+    value: Owner manually flashed all four diagnostic trials with AiBurn and confirmed
       original-product restoration after each. Reset then Boot is the working download
       order. Board data need not be preserved. No agent-operated flashing occurred.
     evidence:
@@ -435,4 +435,4 @@ local_observation:
   evidence:
   - *id002
 recovery_verified: true
-recovery_evidence_basis: owner_report_for_three_diagnostic_trials
+recovery_evidence_basis: owner_report_for_four_diagnostic_trials
