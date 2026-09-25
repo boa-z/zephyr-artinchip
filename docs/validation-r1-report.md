@@ -1,5 +1,82 @@
 # Z0.R1 software evidence and Z0.H0 handoff
 
+## Remote acceptance follow-up: 2026-09-25
+
+The results in this section supersede the remote-pending statements in the
+original local-delivery snapshot below; that historical evidence is retained.
+
+Run 36099116552 at a6073105d8de0d636de51e1f75d8e84aebce85f4 completed SUCCESS.
+The complete Windows workflow passed: bootstrap, host gates, SDK installation,
+QEMU, negative runtime probes, D13x builds, candidate collection, evidence ZIP
+upload, download and verification. A separate local download at
+artifacts/ci-36099116552/software-evidence.zip passed the strengthened verifier
+from 480e95e: 99 files, seven QEMU configurations / 23 passed cases, three D13x
+configurations / seven build-only cases, zero physical-board runtime passes.
+All three candidate .config files are present in the downloaded ZIP.
+
+This closes the R1/R2 Windows success-path transport gap for that source commit.
+The earlier run 36096131063 remains the separate failure-path transport evidence.
+The three downloaded candidate source_at_build values all equal a607310; each
+candidate keeps its own ELF hash and receipt. This is a new software build, not
+a relabeling of the historical f2ce05e candidates.
+
+Commit 480e95e additionally rejects duplicate scenarios, wrong platforms, missing
+or duplicate cases, rehashed contradictory gate reports and candidate-index
+misbinding. Local validation: 82 host tests, lint and provenance PASS; both the
+historical success ZIP and failure ZIP verify. Removing one case from the actual
+historical QEMU report and recomputing its archive hash still returns CLI exit 1.
+Receipt: artifacts/r1-evidence-semantics/real-archive-negative.json. Its own remote
+run 36099414248 at 480e95ed7844574e33fd389f85d8d3133ef9a000 completed SUCCESS
+on 2026-09-25 at 05:48:22 UTC. This status was rechecked through the GitHub CLI.
+The downloaded archive contains 99 files and all three .config files; QEMU has
+seven configurations / 23 passed cases, while D13x has three configurations /
+seven build-only cases. All three candidate receipts identify 480e95e.
+Archive SHA-256: 3c819d8a8b5810277f50f39e7c68ad8b72210440001d21495ee9aa78822115ee.
+
+### Local receipt consistency follow-up
+
+The next local change closes a reproduced acceptance gap: candidate manifests
+and the index could agree on a relabeled source commit while contradicting the
+unchanged build receipt. Likewise, replacing a payload and updating only the
+collection/archive hashes was accepted. The real 480e95e archive reproduced
+the source-identity gap before the fix.
+
+Staging and download verification now require a successful, clean D13x build
+receipt and matching application, board, full source snapshot, dependency
+snapshot and binary conversion command. ELF, bin, map, .config, DTS and compile
+commands must match the receipt's build-time hashes. These are offline
+consistency checks: no receipt command is executed or machine-local build path
+accessed. Receipts and SHA-256 hashes do not establish publisher authenticity.
+
+Validation: 87 host tests PASS, lint PASS and provenance PASS. New regressions
+failed before the implementation and pass after it. Historical failure archive
+36096131063 and success archives 36099116552 / 36099414248 still verify; verifying
+transport of a failure archive does not turn its software_audit into a pass.
+Two altered copies of the real 480e95e archive, with recomputed manifest hashes,
+now return CLI exit 1 for relabeled source identity and a replaced kernel bin.
+Logs, archive hashes, candidate ELF hashes and negative results are retained in
+artifacts/r1-receipt-consistency/host-tests.log and verification.json.
+
+Reproduce the local gates with the project virtual environment:
+
+```sh
+python -m unittest discover -s tests/host -v
+python scripts/lint.py
+python scripts/check_provenance.py
+python scripts/evidence.py verify artifacts/ci-36099414248/software-evidence.zip
+```
+
+This receipt-verifier change has local validation only; the completed remote
+run belongs to 480e95e and predates this change. No new firmware build, QEMU
+execution, physical-board run or push was performed in this follow-up.
+
+Hardware remains pending, H0 remains BLOCKED, loadable_image remains false and
+upstream_ready remains no. Linux independent clean-workspace validation remains
+NOT_RUN; WSL is unavailable on this host and no Docker command was found.
+No SDK/product source, reference Zephyr tree or physical board was modified.
+
+## Original local-delivery snapshot
+
 Date: 2026-09-25. Review baseline: b7c2525b34e585d942e2e2e8691e3d22e38945c2.
 Scope remains P0 and D13x Z0. No physical board operation, push, merge, tag or
 release was performed in this stage. Human ownership/license and DCO review

@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "audit_status": "PASS",
+  "scope": "local container, loader identity and known static spans only",
+  "input_files": {
+    "C:\\Users\\JCSH\\Documents\\Project\\D50T-2-Lite\\luban-lite-jc-d50t-rev\\output\\d13x_d50t-2-lite_rt-thread_D50T-2-Lite\\images\\d13x_D50T-2-Lite_page_2k_block_128k_v1.0.0.img": {
+      "size": 2771456,
+      "sha256": "b0062dacbd68e8ef6f6de0c99c7cdc6620e602c5e00e913b454af6e93037aaf1"
+    },
+    "C:\\Users\\JCSH\\Documents\\Project\\D50T-2-Lite\\luban-lite-jc-d50t-rev\\output\\d13x_d50t-2-lite_rt-thread_D50T-2-Lite\\images\\bootloader.bin": {
+      "size": 253552,
+      "sha256": "04945b6538ea018b104db20759ec7eadd9911b55cc6957e4135aab2811d4153b"
+    },
+    "C:\\Users\\JCSH\\Documents\\Project\\D50T-2-Lite\\luban-lite-jc-d50t-rev\\output\\d13x_d50t-2-lite_baremetal_bootloader\\images\\d13x.bin": {
+      "size": 253552,
+      "sha256": "04945b6538ea018b104db20759ec7eadd9911b55cc6957e4135aab2811d4153b"
+    },
+    "C:\\Users\\JCSH\\Documents\\Project\\D50T-2-Lite\\luban-lite-jc-d50t-rev\\output\\d13x_d50t-2-lite_baremetal_bootloader\\images\\d13x.elf": {
+      "size": 2348984,
+      "sha256": "e6192f5c2ad831f2a9b6d2ecfda308fd77fcaefbc2be659985bb0b12c2e9d5f5"
+    }
+  },
+  "container_components": {
+    "image.updater.psram": {
+      "offset": 6656,
+      "size": 23312,
+      "ram": 805584896,
+      "partition": "",
+      "filename": "usbupg-psram-init.aic",
+      "sha256": "a459df35cd8db832c6df48ff89932e56f48e08f9e34c51094af1fd630cc569b7"
+    },
+    "image.updater.spl": {
+      "offset": 31232,
+      "size": 279568,
+      "ram": 1074790400,
+      "partition": "",
+      "filename": "bootloader.aic",
+      "sha256": "6a4bfd4f97cfd7a6c83ea02d91e49bf195e393ba2a60f1b3bee3665e1a07e661"
+    },
+    "image.info": {
+      "offset": 0,
+      "size": 2048,
+      "ram": 4294967295,
+      "partition": "",
+      "filename": "info.bin",
+      "sha256": "af1e4606dc039b5c8ca7e351e6a3746cf2d2127182030a3d18adf533ceabbc6b"
+    },
+    "image.target.spl": {
+      "offset": 311808,
+      "size": 279568,
+      "ram": 4294967295,
+      "partition": "spl",
+      "filename": "bootloader.aic",
+      "sha256": "6a4bfd4f97cfd7a6c83ea02d91e49bf195e393ba2a60f1b3bee3665e1a07e661"
+    },
+    "image.target.env": {
+      "offset": 592384,
+      "size": 4096,
+      "ram": 4294967295,
+      "partition": "env",
+      "filename": "env.bin",
+      "sha256": "21335eb159e345ed3228a9d76e336c4d010d3a7f678e8d5198666874f303f2e1"
+    },
+    "image.target.env_r": {
+      "offset": 596480,
+      "size": 4096,
+      "ram": 4294967295,
+      "partition": "env_r",
+      "filename": "env.bin",
+      "sha256": "21335eb159e345ed3228a9d76e336c4d010d3a7f678e8d5198666874f303f2e1"
+    },
+    "image.target.os": {
+      "offset": 600576,
+      "size": 1400832,
+      "ram": 4294967295,
+      "partition": "os",
+      "filename": "d13x_os.itb",
+      "sha256": "1a50021ba845f20195d49daad5a1064c5865e54c51b78609d54a26282e6bf1b3"
+    },
+    "image.target.rodata": {
+      "offset": 2001408,
+      "size": 708608,
+      "ram": 4294967295,
+      "partition": "rodata",
+      "filename": "rodata.fatfs",
+      "sha256": "b715b36d3da3b1159249248428149b72b1b6e2af9262d9451e7f86727b9150f8"
+    },
+    "image.target.data": {
+      "offset": 2710016,
+      "size": 61440,
+      "ram": 4294967295,
+      "partition": "data",
+      "filename": "data.fatfs",
+      "sha256": "e9b3b53e291b3c1928eb78926e848f0e770e5c4b57e6459b7d183fbb8038610d"
+    }
+  },
+  "packaged_loader_bindings": {
+    "image.target.spl": {
+      "raw_loader_offset": 23808,
+      "size": 279568,
+      "sha256": "6a4bfd4f97cfd7a6c83ea02d91e49bf195e393ba2a60f1b3bee3665e1a07e661"
+    },
+    "image.updater.spl": {
+      "raw_loader_offset": 23808,
+      "size": 279568,
+      "sha256": "6a4bfd4f97cfd7a6c83ea02d91e49bf195e393ba2a60f1b3bee3665e1a07e661"
+    }
+  },
+  "loader_comparison": {
+    "exact_match": true,
+    "changed_bytes": 0,
+    "executable_bytes_equal": true,
+    "differences": []
+  },
+  "reference_loader_ranges": [
+    {
+      "name": "loader PT_LOAD (includes BSS, stacks and boot arguments)",
+      "start": 1086324736,
+      "end": 1086603960
+    },
+    {
+      "name": "loader default heap",
+      "start": 1086849024,
+      "end": 1090519040
+    }
+  ],
+  "candidates": {
+    "bringup": {
+      "source_at_build": "f2ce05eadfe690500b864b8eef0328d2000bbd24",
+      "elf": {
+        "size": 372468,
+        "sha256": "ffa6df9c739e6217ef13153e18442cfaeba367d0c316a8e1971bd7b310eecb38"
+      },
+      "entry": 805830656,
+      "load_spans": [
+        {
+          "start": 805830656,
+          "end": 805865024
+        }
+      ],
+      "overlaps": []
+    },
+    "kernel": {
+      "source_at_build": "f2ce05eadfe690500b864b8eef0328d2000bbd24",
+      "elf": {
+        "size": 591864,
+        "sha256": "02268b43c24bbfa31c7f5ece938c5b416e785189e1341fe3da73b3f8d23a67e7"
+      },
+      "entry": 805830656,
+      "load_spans": [
+        {
+          "start": 805830656,
+          "end": 805875136
+        }
+      ],
+      "overlaps": []
+    },
+    "fpu": {
+      "source_at_build": "f2ce05eadfe690500b864b8eef0328d2000bbd24",
+      "elf": {
+        "size": 590212,
+        "sha256": "6f78418d1e365dbe13165c9c247367a6452b6a469c8058361334728974115884"
+      },
+      "entry": 805830656,
+      "load_spans": [
+        {
+          "start": 805830656,
+          "end": 805880112
+        }
+      ],
+      "overlaps": []
+    }
+  },
+  "blockers": [],
+  "handoff_status": "BLOCKED",
+  "remaining_hardware_evidence": [
+    "installed-image association",
+    "runtime/DMA/staging RAM ownership",
+    "TCM/map/cache/CSR and interrupt handoff",
+    "recovery and console confirmation"
+  ],
+  "hardware_validation": "pending",
+  "loadable_image": false
+}

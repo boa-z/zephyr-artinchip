@@ -61,8 +61,11 @@ zero runtime passes. JSON, xUnit, handler and build logs are retained by Twister
 `.github/workflows/ci.yml` enforces these downstream gates with no failure bypass;
 the prior run 36092052502 failed during cross-drive artifact upload. Follow-up
 run 36096131063 passed failure-evidence upload/download verification but failed
-a host-test path comparison. Its local correction and current hardware gates
-are recorded in docs/bringup/loader-audit.md; a successful new remote run is pending.
+a host-test path comparison. Run 36099116552 at a607310 then passed the complete
+workflow; run 36099414248 at 480e95e also completed successfully. Both downloaded
+archives passed independent verification including all three candidate .config
+files and candidate-to-build-receipt consistency. See docs/validation-r1-report.md for follow-up
+acceptance evidence and docs/bringup/loader-audit.md for the remaining hardware gates.
 
 Interactive sample: `west build -b qemu_riscv32 samples/bringup -d build-qemu`,
 then `west build -d build-qemu -t run`. Expected lines are
