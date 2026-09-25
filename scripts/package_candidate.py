@@ -80,6 +80,15 @@ def inspect_elf(path, data=None):
                 "segments": segments, "attributes": attributes}
 
 
+def compiler_from_cache(cache):
+    # Zephyr's toolchain setup can store this entry as STRING or FILEPATH.
+    matches = re.findall(r"^CMAKE_C_COMPILER:(?:FILEPATH|STRING)=([^\r\n]*)$",
+                         cache.replace("\r\n", "\n"), re.M)
+    if len(matches) != 1 or not matches[0].strip():
+        raise ValueError("cannot resolve compiler from build cache")
+    return Path(matches[0].strip())
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("build", type=Path)
@@ -116,10 +125,7 @@ def main():
             errors.append(str(error))
     # Inspect every externally linked archive member named by the GNU link map.
     cache = (build / "CMakeCache.txt").read_text(encoding="utf-8")
-    compiler = re.search(r"^CMAKE_C_COMPILER:FILEPATH=(.+)$", cache, re.M)
-    if not compiler:
-        raise ValueError("cannot resolve compiler from build cache")
-    gcc = Path(compiler.group(1).strip())
+    gcc = compiler_from_cache(cache)
     ar = gcc.with_name("riscv64-zephyr-elf-ar" + (".exe" if os.name == "nt" else ""))
     members = set(re.findall(r"([^\s()]+\.a)\(([^)]+)\)",
                             (zephyr_output / "zephyr.map").read_text(encoding="utf-8")))
