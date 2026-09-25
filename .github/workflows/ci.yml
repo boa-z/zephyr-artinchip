@@ -30,13 +30,15 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           west manifest --validate
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Create dedicated logs
+        run: New-Item -ItemType Directory -Force artifacts/r1-logs
       - name: Lint, source provenance and host tests
         run: |
           python scripts/lint.py
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python scripts/check_provenance.py
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          python -m unittest discover -s tests/host -v
+          python -m unittest discover -s tests/host -v *> artifacts/r1-logs/host-tests.log
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Install checksummed RISC-V SDK
         run: |
@@ -47,27 +49,42 @@ jobs:
         run: |
           python scripts/environment.py --output artifacts/environment.json
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          west twister -p qemu_riscv32 -T samples/bringup -T tests/kernel -T tests/fpu --board-root boards --outdir C:/aic-qemu --inline-logs -j4
+          west twister -p qemu_riscv32 -T samples/bringup -T tests/kernel -T tests/fpu -T tests/clic --board-root boards --outdir C:/aic-qemu --inline-logs -j4
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Runtime negative probes
+        run: |
+          python scripts/runtime_probes.py C:/aic-negative --sdk "$env:ZEPHYR_SDK_INSTALL_DIR" *> artifacts/r1-logs/runtime-probes.log
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: D13x build-only gate
         run: |
           west twister -p d50t_2_lite/d133ecs -T samples/bringup -T tests/kernel -T tests/fpu --board-root boards --build-only --outdir C:/aic-d13x --inline-logs -j4
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          west build -b d50t_2_lite/d133ecs samples/bringup -d C:/aic-candidate
+          foreach ($application in @('bringup', 'kernel', 'fpu')) {
+            python scripts/build_candidate.py $application "C:/aic-$application" *> "artifacts/r1-logs/build-$application.log"
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            python scripts/package_candidate.py "C:/aic-$application" "artifacts/candidates/$application" *> "artifacts/r1-logs/collect-$application.log"
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+      - name: Stage allowlisted success or failure evidence
+        if: always()
+        run: |
+          python scripts/evidence.py stage artifacts/transport/software-evidence.zip --status "${{ job.status }}" --qemu C:/aic-qemu --d13x C:/aic-d13x --candidates artifacts/candidates --logs artifacts/r1-logs --environment artifacts/environment.json --negative C:/aic-negative
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          python scripts/package_candidate.py C:/aic-candidate artifacts/d13x-candidate
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-      - name: Retain success and failure evidence
+      - name: Upload single evidence archive
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: software-evidence-hardware-pending
-          path: |
-            C:/aic-qemu/**/twister*.json
-            C:/aic-qemu/**/twister*.xml
-            C:/aic-qemu/**/handler.log
-            C:/aic-qemu/**/build.log
-            C:/aic-d13x/**/twister*.json
-            C:/aic-d13x/**/twister*.xml
-            C:/aic-d13x/**/build.log
-            zephyr-artinchip/artifacts
+          path: zephyr-artinchip/artifacts/transport/software-evidence.zip
+          if-no-files-found: error
+      - name: Download uploaded evidence
+        if: always()
+        uses: actions/download-artifact@v4
+        with:
+          name: software-evidence-hardware-pending
+          path: ${{ runner.temp }}/aic-downloaded
+      - name: Verify downloaded inventory and hashes
+        if: always()
+        run: |
+          python scripts/evidence.py verify "$env:RUNNER_TEMP/aic-downloaded/software-evidence.zip"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }

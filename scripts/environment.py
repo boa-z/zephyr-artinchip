@@ -27,6 +27,8 @@ def run(command, cwd=None):
 def git_identity(path):
     head = run(["git", "rev-parse", "HEAD"], path)
     state = run(["git", "status", "--porcelain"], path)
+    if head["code"] or state["code"]:
+        raise ValueError(f"cannot read Git source identity: {path}")
     return {"path": str(path), "head": head["stdout"] if head["code"] == 0 else None,
             "dirty": bool(state["stdout"]), "status": state["stdout"],
             "head_error": head["stderr"] if head["code"] else None}

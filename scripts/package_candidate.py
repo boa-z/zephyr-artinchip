@@ -18,6 +18,7 @@ from elftools.elf.elffile import ELFFile
 
 from environment import git_identity
 from apply_patches import verify
+from build_provenance import map_inputs, verify_receipt, digest
 
 RAM_START = 0x30080000
 RAM_END = 0x30100000
@@ -39,14 +40,19 @@ def validate_segments(segments, entry):
                for previous_start, previous_end in spans):
             errors.append("overlapping load segments")
         spans.append((start, end))
-        executable |= bool(segment["flags"] & 1 and start <= entry < end)
+        executable |= bool(segment["flags"] & 1 and start <= entry < start + segment["file_size"])
     if not executable:
-        errors.append("entry does not lie in an executable load segment")
+        errors.append("entry does not lie in executable file-backed bytes")
+    if entry % 2:
+        errors.append("RV32C entry must be aligned to two bytes")
     return errors
 
 
 def inspect_elf(path, data=None):
     with (path.open("rb") if data is None else io.BytesIO(data)) as stream:
+        stream.seek(0, os.SEEK_END)
+        file_length = stream.tell()
+        stream.seek(0)
         elf = ELFFile(stream)
         if elf.elfclass != 32 or elf["e_machine"] != "EM_RISCV":
             raise ValueError(f"not an ELF32 RISC-V input: {path}")
@@ -71,12 +77,15 @@ def inspect_elf(path, data=None):
             raise ValueError(f"unapproved ISA extensions: {path}: {isa}")
         if attributes.get("TAG_STACK_ALIGN", 16) != 16:
             raise ValueError(f"stack alignment is not 16: {path}")
+        for segment in elf.iter_segments():
+            if segment["p_offset"] + segment["p_filesz"] > file_length:
+                raise ValueError(f"truncated ELF segment: {path}")
         segments = [{"address": segment["p_paddr"], "virtual_address": segment["p_vaddr"],
                      "memory_size": segment["p_memsz"], "file_size": segment["p_filesz"],
                      "flags": segment["p_flags"]}
                     for segment in elf.iter_segments()
                     if segment["p_type"] == "PT_LOAD" and segment["p_memsz"]]
-        return {"entry": elf["e_entry"], "elf_flags": elf["e_flags"],
+        return {"type": elf["e_type"], "entry": elf["e_entry"], "elf_flags": elf["e_flags"],
                 "segments": segments, "attributes": attributes}
 
 
@@ -99,6 +108,7 @@ def main():
     output = args.output.resolve()
     if output.exists():
         parser.error("output must be a new directory; retain previous evidence")
+    receipt = verify_receipt(build)
     zephyr_output = build / "zephyr"
     for name in REQUIRED:
         if not (zephyr_output / name).is_file():
@@ -112,41 +122,31 @@ def main():
     if not all(re.search(r"(?:^|_)" + ext + r"[0-9]", metadata["attributes"]["TAG_ARCH"])
                for ext in ("m", "a", "f", "d", "c")):
         raise ValueError("final image is not RV32IMAFDC")
+    if metadata["type"] != "ET_EXEC":
+        raise ValueError("candidate must be an executable ELF")
     errors = validate_segments(metadata["segments"], metadata["entry"])
     if any(s["virtual_address"] != s["address"] for s in metadata["segments"]):
         errors.append("candidate requires identity-mapped SRAM load segments")
-    objects = sorted(set(build.rglob("*.obj")) | set(build.rglob("*.o")))
-    if not objects:
-        errors.append("no compiled input objects available for ABI audit")
-    for path in objects:
-        try:
-            inspect_elf(path)
-        except ValueError as error:
-            errors.append(str(error))
-    # Inspect every externally linked archive member named by the GNU link map.
     cache = (build / "CMakeCache.txt").read_text(encoding="utf-8")
-    gcc = compiler_from_cache(cache)
-    ar = gcc.with_name("riscv64-zephyr-elf-ar" + (".exe" if os.name == "nt" else ""))
-    members = set(re.findall(r"([^\s()]+\.a)\(([^)]+)\)",
-                            (zephyr_output / "zephyr.map").read_text(encoding="utf-8")))
+    gcc = Path(receipt["tools"]["compiler"]["path"])
+    ar = Path(receipt["tools"]["ar"]["path"])
+    members, objects = map_inputs((zephyr_output / "zephyr.map").read_text(encoding="utf-8"), build)
+    direct = [{"path": str(path), "sha256": digest(path), "attributes": inspect_elf(path)["attributes"]}
+              for path in objects]
     external = []
-    for archive, member in sorted(members):
-        path = Path(archive.replace("\\", "/"))
-        path = path.resolve() if path.is_absolute() else (build / path).resolve()
-        if path.is_relative_to(build):
-            continue  # all locally compiled input objects were inspected above
-        # Windows GNU ar can translate LF on stdout: extract to preserve bytes.
-        if Path(member).name != member or member in {".", ".."}:
-            raise ValueError("unsafe archive member name")
+    for archive in sorted({path for path, _ in members}):
+        selected = sorted(member for path, member in members if path == archive)
+        inventory = subprocess.check_output([str(ar), "t", str(archive)], text=True).splitlines()
+        if any(inventory.count(member) != 1 for member in selected):
+            raise ValueError(f"missing or ambiguous linked archive member: {archive}")
         with tempfile.TemporaryDirectory() as temporary:
-            subprocess.run([str(ar), "x", str(path), member], cwd=temporary, check=True)
-            content = (Path(temporary) / member).read_bytes()
-        inspected = inspect_elf(Path(member), content)
-        external.append({"archive": str(path), "member": member,
-                         "sha256": hashlib.sha256(content).hexdigest(),
-                         "attributes": inspected["attributes"]})
-    if not external:
-        errors.append("no external runtime members identified; inspect the link map")
+            subprocess.run([str(ar), "x", str(archive), *selected], cwd=temporary, check=True)
+            for member in selected:
+                path = Path(temporary) / member
+                inspected = inspect_elf(path)
+                external.append({"archive": str(archive), "member": member,
+                                 "sha256": digest(path), "attributes": inspected["attributes"],
+                                 "inside_build": archive.is_relative_to(build)})
     if errors:
         raise ValueError("\n".join(errors))
     base = Path(subprocess.check_output([sys.executable, "-m", "west", "list", "zephyr",
@@ -169,6 +169,7 @@ def main():
             raise ValueError(f"unexpected compile ISA: {entry['file']}")
     output.mkdir(parents=True)
     shutil.copy2(commands, output / commands.name)
+    shutil.copy2(build / "build-provenance.json", output / "build-provenance.json")
     shutil.copytree(root / "patches/zephyr", output / "patches")
     for name in REQUIRED:
         shutil.copy2(zephyr_output / name, output / name)
@@ -179,13 +180,18 @@ def main():
         "status": "HARDWARE_PENDING", "hardware_validation": "pending",
         "loadable_image": False, "format": "raw ELF/bin software candidate; no vendor container",
         "packaging_blocker": "Confirm installed loader, RAM staging and handoff before packaging",
-        "source": git_identity(root), "zephyr": dependency, "patches": series,
+        "schema_version": 2, "application": receipt["application"],
+        "source_at_build": receipt["source_at_build"],
+        "collector_at_package": git_identity(root),
+        "dependency_at_build": receipt["dependency_at_build"],
+        "zephyr": dependency, "patches": series,
         "compiler": subprocess.check_output([str(gcc), "--version"], text=True).splitlines()[0],
-        "runtime_members": external,
+        "linked_members": external, "direct_objects": direct,
+        "binary_command": receipt["binary_command"],
         "board": "d50t_2_lite/d133ecs", "nominal_sram": 1048576,
         "nominal_psram": 16777216, "psram_enabled": False,
         "link_region": [RAM_START, RAM_END], "elf": metadata,
-        "input_objects_checked": len(objects), "compile_commands_checked": len(compile_entries), "files": {},
+        "input_objects_checked": len(objects) + len(external), "compile_commands_checked": len(compile_entries), "files": {},
     }
     for path in sorted(output.rglob("*")):
         if not path.is_file():
@@ -200,6 +206,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (OSError, ValueError, ELFError, subprocess.CalledProcessError) as error:
+    except (OSError, ValueError, KeyError, ELFError, subprocess.CalledProcessError) as error:
         print(json.dumps({"status": "FAIL", "error": str(error)}))
         sys.exit(1)

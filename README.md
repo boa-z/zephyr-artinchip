@@ -29,7 +29,7 @@ in the current process and invoke `.venv/Scripts/python` explicitly.
 
 `zephyr-upstream` is an isolated official dependency clone so an existing `zephyr`
 fork is not changed. Its HEAD is pinned to
-`839728050444f90d06870b5fc9bbbda106d91459`; the explicit legacy CLIC patch is applied
+`839728050444f90d06870b5fc9bbbda106d91459`; the explicit CLIC layout and width-validation patches is applied
 on top and verified by `scripts/apply_patches.py --check`. **The dependency is
 patched**, not an unmodified upstream build. `patches/zephyr/series.json` and its
 patch files are required in addition to `west manifest --freeze`.
@@ -49,14 +49,14 @@ python scripts/lint.py
 python scripts/check_provenance.py
 python -m unittest discover -s tests/host -v
 python scripts/apply_patches.py --check
-west twister -p qemu_riscv32 -T samples/bringup -T tests/kernel -T tests/fpu --board-root boards --outdir C:/tmp/aic-qemu --inline-logs -j4
+west twister -p qemu_riscv32 -T samples/bringup -T tests/kernel -T tests/fpu -T tests/clic --board-root boards --outdir C:/tmp/aic-qemu --inline-logs -j4
 west twister -p d50t_2_lite/d133ecs -T samples/bringup -T tests/kernel -T tests/fpu --board-root boards --build-only --outdir C:/tmp/aic-d13x --inline-logs -j4
 ```
 
 Use new output directories to preserve prior evidence. A short absolute Windows
 path avoids GNU ar MAX_PATH failures with Twister's nested build paths. The roots
 are passed explicitly; module declarations alone do not run tests. QEMU must
-execute all 3 configurations / 7 cases. D13x is 3 build-only configurations and
+execute all 7 configurations / 23 cases. D13x is 3 build-only configurations and
 zero runtime passes. JSON, xUnit, handler and build logs are retained by Twister.
 `.github/workflows/ci.yml` enforces these downstream gates with no failure bypass;
 its remote workflow has not been run or published locally.
@@ -72,9 +72,13 @@ real function linked from the module library.
 Read `docs/bringup/d13x-preflight.md` and `d13x-boot-contract.md` first.
 
 ```powershell
-west build -b d50t_2_lite/d133ecs samples/bringup -d build-d13x
-python scripts/package_candidate.py build-d13x artifacts/d13x-candidate
+python scripts/build_candidate.py bringup C:/tmp/aic-candidate-bringup
+python scripts/package_candidate.py C:/tmp/aic-candidate-bringup artifacts/candidates/bringup
 ```
+
+Delivery builds require a clean committed module and a new build directory. Repeat
+the controlled build/collection for kernel and fpu with distinct directories.
+See docs/build-receipts.md for source binding, negative probes and evidence ZIPs.
 
 The collector validates ELF/load spans/ABI/ISA/compile flags/input objects/linked
 runtime members and records hashes, source identity, toolchain and patch series.

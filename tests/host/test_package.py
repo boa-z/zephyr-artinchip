@@ -34,6 +34,15 @@ class PackageTests(unittest.TestCase):
     def test_valid(self):
         self.assertEqual(validate_segments([self.segment()], RAM_START), [])
 
+    def test_entry_in_zero_filled_tail(self):
+        self.assertTrue(validate_segments([self.segment()], RAM_START + 768))
+
+    def test_entry_misaligned(self):
+        self.assertTrue(validate_segments([self.segment()], RAM_START + 1))
+
+    def test_compressed_entry_two_byte_alignment(self):
+        self.assertEqual(validate_segments([self.segment()], RAM_START + 2), [])
+
     def test_reserved_memory(self):
         self.assertTrue(validate_segments([self.segment(RAM_START - 4)], RAM_START))
 

@@ -754,3 +754,68 @@ files:
     revision: 839728050444f90d06870b5fc9bbbda106d91459
     path: drivers/interrupt_controller/intc_clic.c
     sha256: 24f240344eb2e14cf3859c2cefd004f6e98497a5e9c8c55a831636caafed3767
+- path: scripts/build_provenance.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project implementation and synthetic regression fixtures; repository LICENSE.
+    Human DCO review pending.
+  rights_holders:
+  - Project contributors
+  changes: Bind build-time source and payload identity, validate linked inputs and bin conversion, transport
+    explicit evidence with byte verification.
+  dependencies:
+  - Pinned Zephyr generated build metadata
+  - Python standard library
+  review_status: reviewed
+- path: scripts/build_candidate.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project implementation and synthetic regression fixtures; repository LICENSE.
+    Human DCO review pending.
+  rights_holders:
+  - Project contributors
+  changes: Bind build-time source and payload identity, validate linked inputs and bin conversion, transport
+    explicit evidence with byte verification.
+  dependencies:
+  - Pinned Zephyr generated build metadata
+  - Python standard library
+  review_status: reviewed
+- path: scripts/evidence.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project implementation and synthetic regression fixtures; repository LICENSE.
+    Human DCO review pending.
+  rights_holders:
+  - Project contributors
+  changes: Bind build-time source and payload identity, validate linked inputs and bin conversion, transport
+    explicit evidence with byte verification.
+  dependencies:
+  - Pinned Zephyr generated build metadata
+  - Python standard library
+  review_status: reviewed
+- path: tests/host/test_build_provenance.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project implementation and synthetic regression fixtures; repository LICENSE.
+    Human DCO review pending.
+  rights_holders:
+  - Project contributors
+  changes: Bind build-time source and payload identity, validate linked inputs and bin conversion, transport
+    explicit evidence with byte verification.
+  dependencies:
+  - Pinned Zephyr generated build metadata
+  - Python standard library
+  review_status: reviewed
+- path: tests/host/test_evidence.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project implementation and synthetic regression fixtures; repository LICENSE.
+    Human DCO review pending.
+  rights_holders:
+  - Project contributors
+  changes: Bind build-time source and payload identity, validate linked inputs and bin conversion, transport
+    explicit evidence with byte verification.
+  dependencies:
+  - Pinned Zephyr generated build metadata
+  - Python standard library
+  review_status: reviewed
