@@ -100,6 +100,25 @@ def candidate_index(application, manifest):
             "expected_output": EXPECTED_OUTPUT[application]}
 
 
+def check_candidate_receipt(manifest, receipt):
+    # Offline consistency only: never execute commands or resolve machine-local
+    # paths from downloaded receipts. Receipts and hashes are not signatures.
+    if receipt.get("schema_version") != 1 or receipt.get("status") != "PASS":
+        raise ValueError("candidate receipt is not a successful build")
+    if (receipt["board"] != "d50t_2_lite/d133ecs" or
+            receipt["source_at_build"]["dirty"] is not False):
+        raise ValueError("candidate receipt has an unsupported board or dirty source")
+    for field in ("application", "board", "source_at_build",
+                  "dependency_at_build", "binary_command"):
+        if manifest[field] != receipt[field]:
+            raise ValueError(f"candidate differs from build receipt: {field}")
+    for name in ("zephyr.elf", "zephyr.bin", "zephyr.map", ".config",
+                 "zephyr.dts", "compile_commands.json"):
+        source = name if name == "compile_commands.json" else "zephyr/" + name
+        if manifest["files"][name] != receipt["files"][source]:
+            raise ValueError(f"candidate payload differs from build receipt: {name}")
+
+
 def stage(output, status, qemu, d13x, candidates, logs, environment, negative):
     if output.exists():
         raise ValueError("archive must use a new output path")
@@ -134,6 +153,8 @@ def stage(output, status, qemu, d13x, candidates, logs, environment, negative):
                 if record(data) != expected:
                     raise ValueError(f"candidate integrity mismatch: {application}/{name}")
                 files[f"candidates/{application}/{name}"] = data
+            check_candidate_receipt(manifest, json.loads(
+                files[f"candidates/{application}/build-provenance.json"]))
             files[f"candidates/{application}/candidate.json"] = (directory / "candidate.json").read_bytes()
             index[application] = candidate_index(application, manifest)
         if len({item["source_at_build"] for item in index.values()}) != 1:
@@ -190,11 +211,13 @@ def verify_archive(path):
                 for name, expected in candidate_records(candidate).items():
                     if record(archive.read(f"candidates/{application}/{name}")) != expected:
                         raise ValueError("downloaded candidate differs from candidate manifest")
+                check_candidate_receipt(candidate, json.loads(
+                    archive.read(f"candidates/{application}/build-provenance.json")))
             if len({item["source_at_build"] for item in manifest["candidates"].values()}) != 1:
                 raise ValueError("downloaded candidates have different source commits")
         elif manifest["candidates"] or any(n.startswith("candidates/") for n in names):
             raise ValueError("failure archive must not advertise candidate success")
-    return {"status": "PASS", "scope": "archive inventory/size/SHA-256 and software gate/index consistency",
+    return {"status": "PASS", "scope": "archive inventory/size/SHA-256 and software gate/index/build receipt consistency",
             "software_audit": manifest["software_audit"], "files": len(manifest["files"])}
 
 

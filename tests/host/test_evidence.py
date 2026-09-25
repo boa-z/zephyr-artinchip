@@ -61,8 +61,22 @@ class EvidenceTests(unittest.TestCase):
                 payload[name] = evidence.record(b"fixture")
             manifest = {"schema_version": 2, "application": application, "files": payload,
                         "patches": {"patches": [{"path": "patches/zephyr/test.patch"}]},
-                        "source_at_build": {"head": "a" * 40}, "loadable_image": False,
+                        "source_at_build": {"head": "a" * 40, "dirty": False},
+                        "board": "d50t_2_lite/d133ecs",
+                        "dependency_at_build": {"identity": {"head": "c" * 40}},
+                        "binary_command": {"arguments": ["-O", "binary"]},
+                        "loadable_image": False,
                         "hardware_validation": "pending"}
+            receipt = {"schema_version": 1, "status": "PASS",
+                       **{key: manifest[key] for key in
+                          ("application", "board", "source_at_build",
+                           "dependency_at_build", "binary_command")},
+                       "files": {"zephyr/" + name: payload[name] for name in
+                                 ("zephyr.elf", "zephyr.bin", "zephyr.map", ".config", "zephyr.dts")}}
+            receipt["files"]["compile_commands.json"] = payload["compile_commands.json"]
+            data = json.dumps(receipt).encode()
+            (p / "build-provenance.json").write_bytes(data)
+            payload["build-provenance.json"] = evidence.record(data)
             (p / "candidate.json").write_text(json.dumps(manifest))
         self.archive = self.root / "evidence.zip"
 
@@ -212,12 +226,82 @@ class EvidenceTests(unittest.TestCase):
 
     def test_download_rejects_mixed_sources_even_with_matching_index(self):
         self.stage()
+        receipt_name = "candidates/kernel/build-provenance.json"
+        self.rehash_json(receipt_name, lambda d: d["source_at_build"].update(head="b" * 40))
+        with zipfile.ZipFile(self.archive) as archive:
+            receipt_record = evidence.record(archive.read(receipt_name))
         self.rehash_json("candidates/kernel/candidate.json",
                          lambda d: d["source_at_build"].update(head="b" * 40))
+        self.rehash_json("candidates/kernel/candidate.json",
+                         lambda d: d["files"].update({"build-provenance.json": receipt_record}))
         self.rehash_json("evidence.json",
                          lambda d: d["candidates"]["kernel"].update(source_at_build="b" * 40))
         with self.assertRaisesRegex(ValueError, "different source"):
             evidence.verify_archive(self.archive)
+
+    def test_stage_rejects_receipt_mismatch(self):
+        path = self.candidates / "kernel/candidate.json"
+        original = json.loads(path.read_text())
+        for field, value in (("source_at_build", {"head": "b" * 40, "dirty": False}),
+                             ("board", "other_board"),
+                             ("dependency_at_build", {}), ("binary_command", {})):
+            changed = copy.deepcopy(original)
+            changed[field] = value
+            path.write_text(json.dumps(changed))
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "receipt"):
+                self.stage()
+            self.assertFalse(self.archive.exists())
+
+    def test_download_rejects_relabelled_source_with_matching_index(self):
+        self.stage()
+        for app in sorted(evidence.APPLICATIONS):
+            self.rehash_json(f"candidates/{app}/candidate.json",
+                             lambda d: d["source_at_build"].update(head="b" * 40))
+        self.rehash_json("evidence.json", lambda d: [
+            item.update(source_at_build="b" * 40) for item in d["candidates"].values()])
+        with self.assertRaisesRegex(ValueError, "receipt"):
+            evidence.verify_archive(self.archive)
+
+    def test_download_rejects_payload_rehashed_only_at_package_time(self):
+        self.stage()
+        original = self.archive.read_bytes()
+        for filename in ("zephyr.elf", "zephyr.bin", "zephyr.map", ".config",
+                         "zephyr.dts", "compile_commands.json"):
+            self.archive.write_bytes(original)
+            name = f"candidates/kernel/{filename}"
+            self.rewrite(alter=name)
+            digest = evidence.record(b"corrupt")
+            self.rehash_json("candidates/kernel/candidate.json",
+                             lambda d: d["files"].update({filename: digest}))
+            def update_index(data):
+                data["files"][name] = digest
+                if filename == "zephyr.elf":
+                    data["candidates"]["kernel"]["elf"] = digest
+            self.rehash_json("evidence.json", update_index)
+            with self.subTest(filename=filename), self.assertRaisesRegex(ValueError, "receipt"):
+                evidence.verify_archive(self.archive)
+
+    def test_receipt_requires_success_and_clean_target_build(self):
+        path = self.candidates / "kernel"
+        manifest = json.loads((path / "candidate.json").read_text())
+        original = json.loads((path / "build-provenance.json").read_text())
+        mutations = (lambda d: d.update(status="FAIL"),
+                     lambda d: d.update(schema_version=0),
+                     lambda d: d.update(board="other_board"),
+                     lambda d: d["source_at_build"].update(dirty=True))
+        for number, mutate in enumerate(mutations):
+            receipt = copy.deepcopy(original)
+            mutate(receipt)
+            with self.subTest(mutation=number), self.assertRaisesRegex(ValueError, "receipt"):
+                evidence.check_candidate_receipt(manifest, receipt)
+
+    def test_receipt_binds_full_source_snapshot_not_only_commit(self):
+        path = self.candidates / "kernel"
+        manifest = json.loads((path / "candidate.json").read_text())
+        receipt = json.loads((path / "build-provenance.json").read_text())
+        manifest["source_at_build"]["runtime_files"] = {"src/module.c": "changed"}
+        with self.assertRaisesRegex(ValueError, "receipt: source_at_build"):
+            evidence.check_candidate_receipt(manifest, receipt)
 
     def test_download_rejects_inconsistent_status_claims(self):
         self.stage()
