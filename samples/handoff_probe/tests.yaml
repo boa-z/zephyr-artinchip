@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+tests:
+  artinchip.handoff_probe:
+    platform_allow: d50t_2_lite/d133ecs
+    build_only: true
+    tags:
+      - artinchip
+      - handoff

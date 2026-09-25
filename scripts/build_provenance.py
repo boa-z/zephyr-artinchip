@@ -13,7 +13,8 @@ from apply_patches import verify
 from environment import git_identity
 
 ROOT = Path(__file__).resolve().parents[1]
-APPLICATIONS = {"bringup": "samples/bringup", "kernel": "tests/kernel", "fpu": "tests/fpu"}
+APPLICATIONS = {"bringup": "samples/bringup", "kernel": "tests/kernel", "fpu": "tests/fpu",
+                "handoff_probe": "samples/handoff_probe"}
 BOARD = "d50t_2_lite/d133ecs"
 PAYLOADS = ["zephyr/zephyr.elf", "zephyr/zephyr.bin", "zephyr/zephyr.map",
             "zephyr/.config", "zephyr/zephyr.dts", "compile_commands.json",
