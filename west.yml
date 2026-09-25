@@ -8,6 +8,8 @@ manifest:
       remote: zephyrproject-rtos
       path: zephyr-upstream
       revision: 839728050444f90d06870b5fc9bbbda106d91459
-      import: true
+      # P0/Z0 builds use only in-tree drivers and SDK libc.
+      import:
+        path-blocklist: ['*']
   self:
     path: zephyr-artinchip

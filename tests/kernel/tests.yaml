@@ -1,0 +1,9 @@
+tests:
+  artinchip.kernel:
+    platform_allow:
+      - qemu_riscv32
+    integration_platforms:
+      - qemu_riscv32
+    tags:
+      - kernel
+    timeout: 60
