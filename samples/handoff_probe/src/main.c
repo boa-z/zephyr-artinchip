@@ -5,6 +5,7 @@
 
 /* The entry stores every field before Zephyr's BSS clearing; no stack use. */
 uint32_t aic_handoff_snapshot[33] __attribute__((section(".noinit"), aligned(16)));
+uint32_t aic_early_uart_status __attribute__((section(".noinit"), aligned(4)));
 extern void aic_handoff_entry(void);
 
 int main(void)
@@ -18,6 +19,8 @@ int main(void)
         PROBE_SOURCE, aic_handoff_entry, aic_handoff_snapshot,
         (unsigned int)sizeof(aic_handoff_snapshot));
  printk("ELF_SHA256=external:candidate.json privilege=expected-M-not-measured\n");
+ printk("H0-PROBE stage=main early_uart_status=%u (1=attempted,2=submitted,3=DLAB,4=timeout)\n",
+        aic_early_uart_status);
  if (aic_handoff_snapshot[0] != 0x48305031) {
   printk("H0-PROBE FAIL snapshot marker\n");
   return 1;

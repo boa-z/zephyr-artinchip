@@ -3,6 +3,22 @@ human_signoff_pending: true
 review_meaning: File-level source/license/transformation audit only; not legal approval, hardware proof
   or human DCO.
 files:
+- path: scripts/image_roundtrip.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders: [Project contributors]
+  changes: Lossless extraction and original-OS refill, preserving opaque bytes; no vendor runtime copied.
+  dependencies: [scripts/audit_loader.py, image_roundtrip_references]
+  review_status: reviewed
+- path: tests/host/test_image_roundtrip.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original regression tests; repository LICENSE; human DCO pending.
+  rights_holders: [Project contributors]
+  changes: Validate corruption rejection, byte preservation and output isolation.
+  dependencies: [Python standard library]
+  review_status: reviewed
 - path: scripts/audit_ramboot_tool.py
   kind: new
   license: Apache-2.0
@@ -1247,3 +1263,15 @@ installed_aiburn_references:
   - project: locally installed AiBurn
     path: C:/Program Files/AiBurn/upgcmd.exe
     sha256: e58c96d7b34a1150115013519646af2d4518f8b63e9232559de959072097d48f
+image_roundtrip_references:
+  usage: Reference-only container layout and UART register facts; no vendor runtime copied or modified.
+  sources:
+  - project: local D50T SDK
+    path: tools/scripts/mk_image.py
+    sha256: eef54b6655833c567fae698c04afe423b888779da85d9d46d9e81ab7584621bd
+  - project: local D50T SDK
+    path: bsp/artinchip/hal/uart/aic_hal_uart.c
+    sha256: a2b9566b68c22a93fdc6af2f74c8056100f88ad3fa0cb3ac686117157d5e798e
+  - project: local D50T SDK
+    path: bsp/artinchip/include/hal/aic_hal_uart.h
+    sha256: 5731a3ff787a7ce738dcf05cd06039d4501701290d21c7dd71609e0c5b0d4fec
