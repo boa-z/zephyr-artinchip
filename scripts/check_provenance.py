@@ -13,7 +13,7 @@ import yaml
 KINDS = {"new", "copied", "derived", "reference-only"}
 STATES = {"reviewed", "review_required", "blocked"}
 SUFFIXES = {".c", ".h", ".S", ".dts", ".dtsi", ".py", ".yml", ".yaml",
-            ".conf", ".txt", ".cmake", ".json", ".ps1", ".sh", ".patch"}
+            ".conf", ".txt", ".cmake", ".json", ".ps1", ".sh", ".patch", ".lock"}
 
 
 def source_files(root):

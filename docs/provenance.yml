@@ -606,3 +606,42 @@ files:
     path: LICENSE
     sha256: c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08
   review_status: reviewed
+- path: scripts/lint.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project automation; repository LICENSE.
+  rights_holders:
+  - Project contributors
+  changes: New fail-closed validation and CI automation.
+  dependencies:
+  - Python and pinned Zephyr tooling
+  review_status: reviewed
+- path: .github/workflows/ci.yml
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project automation; repository LICENSE.
+  rights_holders:
+  - Project contributors
+  changes: New fail-closed validation and CI automation.
+  dependencies:
+  - Python and pinned Zephyr tooling
+  review_status: reviewed
+- path: tests/host/test_patches.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project automation; repository LICENSE.
+  rights_holders:
+  - Project contributors
+  changes: New fail-closed validation and CI automation.
+  dependencies:
+  - Python and pinned Zephyr tooling
+  review_status: reviewed
+- path: requirements-windows.lock
+  kind: new
+  license: Apache-2.0
+  license_basis: Original environment version listing; not the package source licenses.
+  rights_holders:
+  - Project contributors
+  changes: Capture the actually validated Windows Python environment.
+  dependencies: []
+  review_status: reviewed

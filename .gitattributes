@@ -1,1 +1,3 @@
 * text=auto eol=lf
+# Unified-diff context carries required leading spaces and a mail footer.
+*.patch -whitespace

@@ -152,6 +152,15 @@ def main():
     commands = build / "compile_commands.json"
     if not commands.is_file():
         raise ValueError("compile_commands.json is required for flag auditing")
+    compile_entries = json.loads(commands.read_text(encoding="utf-8"))
+    if not compile_entries:
+        raise ValueError("empty compile command database")
+    for entry in compile_entries:
+        command = entry.get("command", " ".join(entry.get("arguments", [])))
+        if re.findall(r"-mabi=([^\s]+)", command) != ["ilp32d"]:
+            raise ValueError(f"unexpected compile ABI: {entry['file']}")
+        if re.findall(r"-march=([^\s]+)", command) != ["rv32imafdc_zicsr_zifencei"]:
+            raise ValueError(f"unexpected compile ISA: {entry['file']}")
     output.mkdir(parents=True)
     shutil.copy2(commands, output / commands.name)
     shutil.copytree(root / "patches/zephyr", output / "patches")
@@ -170,7 +179,7 @@ def main():
         "board": "d50t_2_lite/d133ecs", "nominal_sram": 1048576,
         "nominal_psram": 16777216, "psram_enabled": False,
         "link_region": [RAM_START, RAM_END], "elf": metadata,
-        "input_objects_checked": len(objects), "files": {},
+        "input_objects_checked": len(objects), "compile_commands_checked": len(compile_entries), "files": {},
     }
     for path in sorted(output.rglob("*")):
         if not path.is_file():
