@@ -1,11 +1,56 @@
 schema_version: 1
-record_date: '2026-09-25'
+record_date: '2026-09-26'
 gate: Z0.H0
 status: BLOCKED
 hardware_validation: pending
 loadable_image: false
 upstream_ready: 'no'
 items:
+  zephyr_product_window_20260926:
+    classification: observed
+    observer: user-pasted main-stage transcript
+    status: PARTIAL
+    value:
+      result: MAIN_REACHED
+      entry: '0x40000dd8'
+      snapshot_buffer: '0x400050c0'
+      snapshot_bytes: 132
+      early_uart_status: 2
+      early_marker_in_supplied_log: false
+      entry_clicinfo: '0x00600090'
+      decoded_numint: 144
+      decoded_intctlbits: 3
+      configured_num_irqs: 96
+      ten_second_observation: not reported
+      recovery_this_trial: not reported
+    evidence:
+    - path: docs/bringup/d13x-zephyr-window-trial.md
+    limits: Experimental product-window main reached; no default SRAM, timer precision,
+      FPU context-switch, full interrupt coverage or stability acceptance.
+  diagnostic_trials_20260926:
+    classification: observed
+    observer: user-pasted serial transcripts and owner recovery confirmation
+    status: PARTIAL
+    value:
+      observe_only: passed within trial scope
+      original_product_transfer: passed within trial scope
+      standalone_jump: passed within trial scope
+      transfer_records: 99
+      dropped_records: 0
+      payload_address: '0x40000000'
+      payload_bytes: 1397820
+      payload_crc32: '0xf183bd17'
+      dma_stop_calls: 685
+      sampled_dma_enable_values: all zero at three snapshots
+      recovery_verified: true
+      recovery_basis: owner_report
+      zephyr_execution: NOT_RUN
+    evidence:
+    - path: docs/bringup/d13x-diagnostic-spl.md
+    - path: docs/bringup/d13x-observe-image-evidence.md
+    limits: Original-product PSRAM transfer evidence does not validate candidate SRAM
+      at 0x30080000, physical aliases or all bus masters. Final entry observations
+      are recorded separately under cpu_handoff.
   physical_board_revision:
     classification: unknown
     value: null
@@ -99,12 +144,23 @@ items:
     required_evidence: Installed loader code/stack/heap/boot arguments/DMA reservations, staging, copying/decompression
       peak use, and overlaps with every candidate PT_LOAD span.
   cpu_handoff:
-    classification: unknown
-    value: null
-    status: BLOCKED
-    evidence: []
-    required_evidence: Verified M-mode, interrupt mask, trap setup, mxstatus/mexstatus/FPU and TCM/map/cache
-      state; do not probe unknown CSRs.
+    classification: observed
+    observer: user-pasted standalone probe frame
+    status: PARTIAL
+    value:
+      probe_entry: '0x40000000'
+      mstatus: '0x80006080'
+      mie: '0x00000000'
+      mtvec: '0x40c00383'
+      mhcr: '0x0000103f'
+      entry_mie_bit: cleared
+      boot_device_a0: 5
+      boot_args_a1: '0x40c3be28'
+      zephyr_execution: NOT_RUN
+    evidence:
+    - path: docs/bringup/d13x-standalone-jump.md
+    required_evidence: Remaining SRAM/alias and bus-master ownership, broader CPU/CLIC/FPU
+      state and Zephyr runtime acceptance. No privilege measurement or cache-disabled claim.
   uart_source_configuration:
     classification: source-derived
     value:
@@ -162,19 +218,17 @@ items:
     required_evidence: Independent timer wall-time reference and safe debugger/loader CLICINFO evidence
       after hardware access is authorized.
   recovery_and_permission:
-    classification: unknown
-    value: 'User confirms USB programming of the complete image and subsequent main-power restart. User
-      confirms Reset + Boot buttons enter download mode and Aiburn is the tool used. User also permits
-      artinchip-flash as an alternative tool at C:/Users/JCSH/Documents/Tools/artinchip-flash. Exact button
-      timing, Aiburn version and recovery with a non-booting application remain unverified. Tool choice
-      does not establish a validated Zephyr loading route; no board operation was performed in this evidence
-      update. Follow-up: installation C:/Program Files/AiBurn; press Reset then Boot; development-board
-      data need not be preserved. Release timing remains unspecified.'
-    status: BLOCKED
+    classification: observed
+    observer: owner report
+    status: PARTIAL
+    value: Owner manually flashed all three H0 diagnostic trials with AiBurn and confirmed
+      original-product restoration after each. Reset then Boot is the working download
+      order. Board data need not be preserved. No agent-operated flashing occurred.
     evidence:
-    - *id001
-    required_evidence: Proven recovery path, named human operator and explicit scope of permitted board
-      operations before any RAM load or flash operation.
+    - path: docs/bringup/d13x-diagnostic-spl.md
+    - path: docs/bringup/d13x-observe-image-evidence.md
+    limits: Recovery is owner-confirmed, without an independently inspected recovery
+      transcript or flash readback. This does not authorize an unreviewed SRAM payload.
   reported_boot_path:
     classification: observed
     observer: user report; not agent-operated hardware
@@ -380,4 +434,5 @@ local_observation:
     read only.
   evidence:
   - *id002
-recovery_verified: false
+recovery_verified: true
+recovery_evidence_basis: owner_report_for_three_diagnostic_trials

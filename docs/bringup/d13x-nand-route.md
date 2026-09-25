@@ -2,7 +2,9 @@
 
 The offline container uses the original NAND OS boot path. It does not depend
 on the loader RAM shell command. H0 remains BLOCKED, loadable_image=false,
-hardware_validation=pending and recovery_verified=false.
+hardware_validation=pending. Recovery is now owner-confirmed for both diagnostic
+trials; see d13x-diagnostic-spl.md. The findings below are historical unless
+qualified by that newer evidence.
 
 ## Route-specific audit
 

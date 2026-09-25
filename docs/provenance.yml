@@ -3,6 +3,126 @@ human_signoff_pending: true
 review_meaning: File-level source/license/transformation audit only; not legal approval, hardware proof
   or human DCO.
 files:
+- path: samples/handoff_probe/product-window.overlay
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Explicit experimental allocation within the exercised product address window.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: scripts/package_window_probe.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Fixed experimental Zephyr ELF BIN and FIT binding; standard SRAM gate unchanged.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: diagnostics/jump_probe/entry.S
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Stackless standalone entry snapshot and bounded inherited UART output.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: diagnostics/jump_probe/link.ld
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Fixed previously exercised product interval; no BSS runtime.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: scripts/build_jump_probe.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Offline standalone ELF BIN and FIT binding.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: scripts/package_jump_probe.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Fixed-hash standalone OS replacement retaining original loader.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: scripts/check_jump_log.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Strict standalone UART frame and entry interrupt-mask checker.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: tests/host/test_jump_log.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Malformed incomplete duplicate and invalid interrupt-mask checks.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: scripts/transfer_image.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Fixed-hash original-product transfer-stop packaging; retains PBP and updater.
+  dependencies:
+  - image_roundtrip_references
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: scripts/check_transfer_log.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Strict schema-2 transfer evidence validation without hardware acceptance.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: tests/host/test_transfer_log.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Synthetic transfer trace failure and completeness checks.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: tests/host/test_dma_summary.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Native execution of recorder functions with IRQ stubs; no target emulation.
+  dependencies: []
+  review_status: reviewed
 - path: scripts/observation_image.py
   kind: new
   license: Apache-2.0
@@ -88,6 +208,40 @@ files:
   changes: Regression checks for context drift and reference isolation.
   dependencies:
   - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: diagnostics/tinyspl/patches/0002-h0-transfer-stop.patch
+  kind: derived
+  license: Apache-2.0
+  license_basis: SDK source SPDX Apache-2.0; original notices retained in target files;
+    human DCO pending.
+  rights_holders:
+  - ArtInChip Technology Co., Ltd
+  - Project contributors
+  changes: Transfer-stop hooks and complete read exits; no PBP modifications.
+    Includes original diagnostic source additions; offline only.
+  dependencies:
+  - tinyspl_diagnostic_references
+  sources:
+  - project: local D50T SDK
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: target/configs/d13x_d50t-2-lite_baremetal_bootloader_defconfig
+    sha256: a2d5e2358a2935ba09a496cc96c738c6d13d6d3fa3b8b3b2880375220f2a35d8
+  - project: local D50T SDK
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: application/baremetal/bootloader/lib/fitimage/fitimage.c
+    sha256: 7af18b76736c44670dcad69a979d1952c1147cb2c2a8e107b5542b45bf333bd0
+  - project: local D50T SDK
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: application/baremetal/bootloader/lib/common/boot_app.c
+    sha256: 963807973bf1d60b35c766a84a8736004103d2b9f94dbecc0bcecb31f6b8e41d
+  - project: local D50T SDK
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: bsp/peripheral/spinand/spinand.c
+    sha256: b569be0cd9536d3dbc8f198944e3f00fca6a50a71b20a7d72a7b491d4f3ef6df
+  - project: local D50T SDK
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: bsp/artinchip/hal/qspi/hal_qspi_v1x.c
+    sha256: 9f0c8a84f01272ad045e4068d4625aff25beab88252738d7a783c65da616c724
   review_status: reviewed
 - path: diagnostics/tinyspl/patches/0001-h0-observation.patch
   kind: derived

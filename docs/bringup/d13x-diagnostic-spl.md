@@ -120,3 +120,214 @@ Follow-up: the owner requested progression to a burnable manual experiment.
 observe-only SPL image that returns before all OS FIT reads. It retains the
 original product OS and updater, and does not run the transfer-capable diagnostic
 revision described above. Its explicit H0 trial readiness is not H1 acceptance.
+
+## Transfer-stop follow-up (offline only)
+
+The observation transcript passed its strict checker and the owner confirmed
+normal operation after restoring the original product; see the current
+[trial record](d13x-observe-image-evidence.md). Recovery no longer blocks offline
+development of the next diagnostic stage.
+
+`scripts/instrument_tinyspl.py --transfer-only` now attempts the existing FIT
+load and returns -1 after cleanup, dumping evidence with entry zero. A separate
+boot_app guard removes the payload call even if that function is called through
+another path. Modes are mutually exclusive. Zero-length reads and failed NAND
+logical-to-physical translations now emit matching read-end events. Header
+allocation failure reaches the diagnostic cleanup path too.
+
+Kind 7 records the FIT attempt's terminal return value (address/size zero).
+It is not a success certificate: inherited FIT error paths can retain a
+nonnegative return, so a future checker must also check reads and CRC evidence.
+The terminal marker is:
+
+```text
+H0-TRANSFER-ONLY: FIT attempt ended; no payload jump; return to console
+```
+
+The applied, source-bound patch is
+`diagnostics/tinyspl/patches/0002-h0-transfer-stop.patch`; apply it to the baseline,
+not on top of 0001. Original SDK files were hash checked against the previous
+receipt before replacing only the known diagnostic files in the isolated copy.
+The reference tree and delivered observation/restoration images were not changed.
+
+Build succeeds in `C:/aic-h0-sdk-baseline`; archived ELF/BIN/MAP, configuration,
+build log, disassembly and hashes are in `artifacts/h0-transfer-stop-build/`.
+BIN: 254896 bytes, SHA-256
+`5262510dfe7a2cb77b4cb4feaf8e21867969184b2ef181cd8d739b70b81d1b0d`.
+PT_LOAD: [0x40c00000, 0x40c45808). boot_app disassembly has only diagnostic
+output/return paths, with no indirect payload call. The known preprocessing
+warning remains; no new C diagnostic warnings appeared. 129 host tests pass.
+
+This is not a new flash delivery. Outstanding work before proposing a trial:
+
+- Bound or summarize per-transfer DMA records: the 256-record buffer may
+  overflow across the full product load. Overflow still reports INCOMPLETE;
+  the stop mode never jumps even when the trace is complete.
+- Add strict transfer-log validation for read pairing/results, allocation
+  lifetimes, stop errors and snapshot completeness; the 54-record observation
+  checker is intentionally inapplicable.
+- Review destination/loader/heap intervals and unresolved aliases before any
+  payload writes on hardware, then bind the reviewed binary to a separate
+  fixed-profile package. The observe-only packager rejects this binary.
+
+`loadable_image=false`, `hardware_validation=pending`. A successful target build
+and removal of the jump do not prove that the preceding payload writes are safe.
+
+### Schema-2 follow-up: bounded DMA summaries and transfer checker
+
+The current transfer-stop patch supersedes the preceding offline binary.
+Transfer mode emits schema 2. Kind 16 is a DMA stop summary: channel object
+pointer, occurrence count, and exact return code. Only consecutive stop records
+are grouped by channel/return code; grouping never crosses another event type.
+The first occurrence determines record order, but interleaving within a group
+is no longer represented. Errors have distinct records. Counter saturation or
+record exhaustion increments dropped and prevents a CAPTURED result. Schema-1
+observation mode keeps individual kind-6 records.
+
+Kind 8 records a successful payload CRC check: load address, length and computed
+CRC32. `scripts/check_transfer_log.py LOG` requires one schema-2 block, exact
+snapshot register sequences, zero sampled DMA enables, paired full reads,
+paired temporary NAND allocations/frees, successful stop summaries, payload/CRC
+pairing, FIT completion and the stop marker. It rejects dropped records and
+returns nonzero on failure. PASS is text consistency only: the printed payload
+interval/CRC still needs comparison against the selected image receipt. It does
+not cover uninstrumented persistent buffers or all allocator consumers.
+
+Validation: 134 host tests pass, including native execution of the actual C
+recorder functions with IRQ stubs. 200000 alternating successful stop calls
+use two records; tests also exercise errors, operation boundaries, counter
+saturation and record overflow. No IRQ/CSR/MMIO behavior is proven by that test.
+Schema-2 parser tests reject failed/short reads, missing CRC/free/snapshot,
+duplicate attempts, enabled sampled channels and overflow. Target build passes
+with only the already recorded preprocessing warning.
+
+Current build and receipt: `artifacts/h0-transfer-summary-build/`.
+BIN: 255152 bytes, SHA-256
+`97f6781040fa1fa5ff36d0ecb00fe665bed5ce89aa5df72b1571fe3e61347c4f`.
+Applied source hashes: `artifacts/h0-transfer-summary-patch/patch-inputs.json`.
+
+The original product container hash was verified against the restored baseline.
+Its FIT was inspected using the isolated SDK's existing `tools/scripts/fdt`
+parser (reference-only, not copied into this project); the restricted Zephyr FIT
+codec correctly rejects this different layout and was not relaxed. The actual
+product seg0 interval is [0x40000000, 0x4015543c), file offset 0x800, length
+1397820, CRC32 0xf183bd17; the payload CRC was recomputed successfully. There
+is no numeric overlap with this build's loader PT_LOAD or default heap (exact
+ranges in the receipt). This is a static virtual-address comparison, not proof
+that undocumented aliases or other bus masters cannot touch those bytes.
+
+The repeated-success DMA capacity issue and basic transfer parser are now
+addressed. A pathological number of distinct events still fails closed.
+Before a flash release, remaining work is runtime interval guarding/profile
+binding and review of persistent NAND/DMA buffer ownership and alias assumptions.
+No schema-2 physical trace exists yet. The delivered observation and restoration
+images remain unchanged; no new flash image is released by this build.
+
+### Guarded original-product trial (2026-09-26)
+
+The subsequent build adds the fixed numeric read guard in h0_diag.h, restricts
+the device to SPI NAND and requires the original payload CRC before issuing its
+read. Kind 9 records a rejected profile; the log checker fails that attempt.
+The CLI checker also binds reported payload and metadata fields to the original
+product profile. Native tests exercise lower/upper heap bounds and wrong
+payload address/size. The observation profile remains unchanged.
+
+The initial summarized loader wrapper exceeded the original target SPL slot by
+1536 bytes; this was a failed packaging check, not a delivered image. Disabling
+only CONFIG_AIC_BOOTLOADER_CMD_MEM in the isolated bootloader defconfig removes
+unused memory shell commands. The SDK reloads defconfig on every build, so the
+defconfig change is required; changing .config alone did not change the build.
+The final wrapper is exactly 279568 bytes, equal to the original slot. No
+partition relocation or header-layout extension was needed.
+
+Final BIN SHA-256:
+`333266456097713f133874dae4afc0fa0b759852c6dfe249a99d4741c2488057`.
+`scripts/transfer_image.py` pins this complete binary and the original product
+container, validates ELF/BIN association and numeric spans, verifies AIC wrapping
+and rejects changes outside target SPL bytes and their length/CRC fields.
+The original USB updater and PBP remain exact. boot_app linked instructions were
+reviewed again: no indirect payload call remains.
+
+Ownership review: the linked hal_dma_def_v1x driver initializes its free list
+from aich_dma.task (static loader storage); descriptors are not allocated from
+the payload destination. spinand_init allocates its persistent databuf using
+aicos_malloc_align before assigning oobbuf inside the same allocation. These
+source facts narrow ownership; runtime pointers and physical aliases are not
+fully observed by the current trace and remain outside any H1 acceptance.
+
+Build, applied source/config patches and hashes accompany the offline-verified
+manual H0 trial image in `artifacts/h0-transfer-guard-candidate/`. See the
+[operator guide](d13x-transfer-flash-guide.md). No board operation was performed
+by the agent. The upcoming physical trial, including its restoration, is pending.
+
+### User-reported transfer and restoration result (2026-09-26)
+
+The owner supplied the schema-2 transcript and confirmed normal restoration.
+Locally serialized pasted text (including chat escapes, not raw serial bytes):
+`artifacts/h0-transfer-user-evidence/user-pasted.log`, SHA-256
+`9b9f2229c34a656f2f4eac72d1b2f442aa7dd0002188478906d7630d2fb0773b`.
+The corrected checker returns PASS; its report is `check.json` alongside it.
+
+This trial exposed an error in our host checker and synthetic fixtures:
+kind-2 SPI NAND returns were incorrectly treated as byte counts. The source
+chain is spl_read -> mtdcore.c:mtd_read -> spinand_mtd.c:mtd_spinand_read ->
+spinand.c:spinand_read. The wrapper forwards the driver's status (zero here),
+not the requested length. The checker now requires zero for this NAND profile,
+rejects byte-count-shaped/nonzero values and retains negative-error rejection.
+No firmware change or repeat flash is necessary for this host-side correction.
+Earlier claims that return-value checking detects short reads were incorrect:
+mtd_spinand_read can clamp length to its partition boundary while returning a
+status. Requested lengths are recorded, not independently measured. Payload
+CRC matching the fixed original-image profile supplies separate content evidence.
+
+Results within the trial's scope:
+
+- 99 ordered events, dropped=0; three paired reads (40, 732, 1397820 bytes
+  requested), three temporary buffer allocations/frees.
+- Payload [0x40000000, 0x4015543c), offset 0x800, CRC32 0xf183bd17 matches
+  the offline-verified original image.
+- Stop summaries on channel object 0x40c3d690 report 1 + 1 + 683 = 685 calls,
+  all returning zero. These are stop-call counts, not a generic transfer count.
+- All three CPU/mapping snapshots have identical values; eight sampled DMA
+  enable registers are zero at every snapshot. No payload jump was performed.
+- Recovery accepted as `owner_report`; no independent recovery serial capture
+  or AiBurn result file was supplied. Do not request repetition for that alone.
+
+The bounded original-product transfer-and-restoration trial is complete.
+Its reset banner is Command-Reboot (0x500), not external-pin Reset evidence.
+Full alias/persistent-buffer/bus-master ownership and final handoff/Zephyr
+execution remain unverified. Overall hardware validation and the H1 loadable
+gate remain pending/false; the original delivery manifest is a pre-trial record.
+
+### Next handoff probe readiness review
+
+The existing Zephyr handoff probe remains linked in the candidate SRAM region
+starting at 0x30080000. The successful original-product transfer at 0x40000000
+does not validate that different region; the existing transfer-stop image also
+intentionally rejects the SRAM payload profile. Do not substitute the old probe
+FIT into the successful transfer image and assume its gate has passed.
+
+The probe's MTIME high/low/high consistency loop previously retried indefinitely.
+It now permits at most 65536 attempts. Exhaustion records sentinel timer values,
+selects `H0-PROBE FAIL mtime-incoherent; kernel-not-started` for the bounded UART
+path and enters an explicit stop without calling __start. A noinit status word
+distinguishes exhaustion from a coherent sample. This bounds retries only;
+MMIO bus faults/stalls and UART visibility are not guaranteed. The stop requires
+reset and is not a recovery mechanism.
+
+Development target build: `C:/aic-h0-bounded-probe-dev`, 25424 bytes RAM used.
+Build log and reviewed entry disassembly are in artifacts/h0-bounded-probe-*.txt
+and artifacts/h0-bounded-probe-build.log. Linked code branches to the failure
+stop at 0x30080f46 or to __start at 0x30080000; no new CSR addresses were added.
+137 host tests and lint/provenance checks pass. This is an uncommitted development
+build, not a clean-source delivery receipt or physical execution result. Initial
+configuration failed to locate the SDK; setting the existing SDK path resolved
+it. The successful build uses a cache outside the reference Zephyr tree.
+
+The next minimal experiment should isolate final handoff from Zephyr startup:
+a new standalone, stackless diagnostic confined to the already exercised
+original-product destination, with a reviewed entry and bounded serial output,
+followed by a deliberate stop. It still needs its own source/build/hash binding,
+load/entry/CRC guard profile and review of final cache/interrupt state. It must
+not inherit H1 acceptance from the original-product CRC result. No new flash
+image is released by this readiness review; no board action is needed yet.

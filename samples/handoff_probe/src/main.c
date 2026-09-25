@@ -6,6 +6,7 @@
 /* The entry stores every field before Zephyr's BSS clearing; no stack use. */
 uint32_t aic_handoff_snapshot[33] __attribute__((section(".noinit"), aligned(16)));
 uint32_t aic_early_uart_status __attribute__((section(".noinit"), aligned(4)));
+uint32_t aic_mtime_status __attribute__((section(".noinit"), aligned(4)));
 extern void aic_handoff_entry(void);
 
 int main(void)

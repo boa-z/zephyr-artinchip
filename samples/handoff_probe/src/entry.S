@@ -43,13 +43,27 @@ aic_handoff_entry:
  lw t2, 0(t1)
  sw t2, 56(t0)
  li t1, 0x2000bff8 /* SDK non-QEMU CORET MTIME; matching loader time read */
+ li t4, 65536 /* bounded consistency attempts, not a time unit */
 2:
  lw t2, 4(t1)
  lw t3, 0(t1)
  sw t3, 60(t0)
  lw t3, 4(t1)
- bne t2, t3, 2b
+ beq t2, t3, .Lmtime_ok
+ addi t4, t4, -1
+ bnez t4, 2b
+ /* No coherent timer sample: do not enter Zephyr or print CAPTURED.
+  * Keep the other snapshot fields and the bounded inherited-UART path.
+  */
+ li t2, -1
+ sw t2, 60(t0)
+.Lmtime_ok:
  sw t2, 64(t0)
+ .option push
+ .option norelax
+ la t3, aic_mtime_status
+ .option pop
+ sw t4, 0(t3) /* zero means exhausted; nonzero means coherent */
  /* SDK SYSMAPADDR/CFG0..7, read only. CPU_BASE + 0x0ffff000. */
  li t1, 0x2ffff000
  addi t2, t0, 68
@@ -72,7 +86,15 @@ aic_handoff_entry:
  .option norelax
  la t0, aic_early_uart_status
  la t1, .Learly_marker
+ la t3, aic_mtime_status
  .option pop
+ lw t3, 0(t3)
+ bnez t3, .Luart_begin
+ .option push
+ .option norelax
+ la t1, .Lmtime_failure
+ .option pop
+.Luart_begin:
  li t2, DT_REG_ADDR(DT_NODELABEL(uart0))
  li t3, 1 /* attempted */
  sw t3, 0(t0)
@@ -105,8 +127,18 @@ aic_handoff_entry:
 .Luart_status:
  sw t3, 0(t0)
  fence rw, rw
+ .option push
+ .option norelax
+ la t0, aic_mtime_status
+ .option pop
+ lw t1, 0(t0)
+ beqz t1, .Lprobe_stop
  tail __start
+.Lprobe_stop:
+ j .Lprobe_stop /* explicit no-kernel failure stop; reset needed */
 .size aic_handoff_entry, .-aic_handoff_entry
 .section .rodata.aic_early_marker,"a",@progbits
 .Learly_marker:
  .asciz "H0-PROBE stage=snapshot-before-zephyr\r\n"
+.Lmtime_failure:
+ .asciz "H0-PROBE FAIL mtime-incoherent; kernel-not-started\r\n"

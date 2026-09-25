@@ -5,10 +5,21 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
-from instrument_tinyspl import once, changes, apply, SPI, QSPI
+from instrument_tinyspl import once, changes, apply, SPI, QSPI, BOOT
 
 
 class PatchTests(unittest.TestCase):
+    def test_modes_conflict_before_writes(self):
+        with self.assertRaisesRegex(ValueError, "mutually exclusive"):
+            apply(Path("missing-reference"), Path("missing-copy"),
+                  Path("missing-evidence"), True, True)
+
+    def test_transfer_mode_blocks_even_direct_boot_app(self):
+        patched = changes(BOOT, "void boot_app(void) {\n    aicos_dcache_clean();\n    jump();\n}\n",
+                          transfer_only=True)
+        self.assertLess(patched.index("    return;"), patched.index("    aicos_dcache_clean();"))
+        self.assertNotIn("h0_dump", patched)
+
     def test_ambiguous_context_fails(self):
         for source in ("", "needle needle"):
             with self.assertRaises(ValueError):

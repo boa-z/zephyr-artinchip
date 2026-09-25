@@ -23,19 +23,58 @@ def once(text, old, new):
     return text.replace(old, new)
 
 
-def changes(path, text, observe_only=False):
+def changes(path, text, observe_only=False, transfer_only=False):
+    if observe_only and transfer_only:
+        raise ValueError("observation and transfer modes are mutually exclusive")
     original = text
     text = '#include <h0_diag.h>\n' + text
     if path == FIT:
         text = once(text, "    u8 *p = buf;", "    u8 *p = buf;\n    h0_event(1, (uintptr_t)buf, size, offset);")
         text = once(text, "    return rdlen;", "    h0_event(2, (uintptr_t)buf, size, (uint32_t)rdlen);\n    return rdlen;")
+        text = once(text, "    if (!size)\n        return size;",
+                    "    if (!size) {\n        h0_event(2, (uintptr_t)buf, size, 0);\n        return size;\n    }")
+        text = once(text, "        if (offset == UINT32_MAX)\n            return -1;",
+                    "        if (offset == UINT32_MAX) {\n            h0_event(2, (uintptr_t)buf, size, (uint32_t)-1);\n            return -1;\n        }")
         text = once(text, "            ret = spl_read(info, offset, (u8 *)load_addr, length);",
                     "            h0_state(2);\n            h0_event(3, load_addr, length, offset);\n            ret = spl_read(info, offset, (u8 *)load_addr, length);")
         signature = "int spl_load_simple_fit(struct spl_load_info *info, ulong *entry_point)\n{"
         text = once(text, signature, signature + "\n    h0_begin();")
         if observe_only:
             text = once(text, "    h0_begin();", "    h0_begin();\n    h0_dump(0);\n    printf(\"H0-OBSERVE-ONLY: OS not read; no payload jump; return to console\\n\");\n    return -1;")
+        if transfer_only:
+            text = once(text, "    h0_begin();", "    h0_begin_transfer();")
+            text = once(text, "    h0_event(1, (uintptr_t)buf, size, offset);",
+                        "    h0_event(1, (uintptr_t)buf, size, offset);\n"
+                        "    if (info->dev_type != DEVICE_SPINAND ||\n"
+                        "        !h0_read_allowed((uintptr_t)buf, size, offset)) {\n"
+                        "        h0_event(9, (uintptr_t)buf, size, offset);\n"
+                        "        h0_event(2, (uintptr_t)buf, size, (uint32_t)-1);\n"
+                        "        return -1;\n    }")
+            text = once(text, "            h0_state(2);",
+                        "#ifndef LPKG_USING_FDTLIB_CRC32_VERIFY\n"
+                        '#error "H0 transfer requires CRC verification"\n'
+                        "#else\n"
+                        "            if (crc1 != 0xf183bd17U) {\n"
+                        "                h0_event(9, load_addr, length, crc1);\n"
+                        "                return -1;\n            }\n"
+                        "#endif\n            h0_state(2);")
+            text = once(text, '                printf("CRC32 verify OK.\\n");',
+                        '                h0_event(8, load_addr, length, crc2);\n                printf("CRC32 verify OK.\\n");')
+            # Only the FIT loader's terminal return is replaced. Every cleanup
+            # path converges here, including failures; no entry is dereferenced.
+            text = once(text, "    aicos_free(MEM_DEFAULT, header);\n    return ret;",
+                        "    aicos_free(MEM_DEFAULT, header);\n"
+                        "    h0_event(7, 0, 0, (uint32_t)ret);\n"
+                        "    h0_dump(0);\n"
+                        "    printf(\"H0-TRANSFER-ONLY: FIT attempt ended; no payload jump; return to console\\n\");\n"
+                        "    return -1;")
+            text = once(text, '        printf("No space to malloc for header\\n");\n        return -1;',
+                        '        printf("No space to malloc for header\\n");\n        ret = -1;\n        goto __exit_header;')
     elif path == BOOT:
+        if transfer_only:
+            text = once(text, "    aicos_dcache_clean();",
+                        '    printf("H0-TRANSFER-ONLY: boot_app blocked\\n");\n    return;\n    aicos_dcache_clean();')
+            return text
         text = once(text, "    aicos_dcache_clean();",
                     "    if (h0_dump((uintptr_t)ep)) {\n        printf(\"H0-SPL refusing jump: incomplete trace\\n\");\n        return;\n    }\n    aicos_dcache_clean();")
     elif path == SPI:
@@ -55,7 +94,9 @@ def changes(path, text, observe_only=False):
     return text
 
 
-def apply(reference, destination, evidence, observe_only=False):
+def apply(reference, destination, evidence, observe_only=False, transfer_only=False):
+    if observe_only and transfer_only:
+        raise ValueError("observation and transfer modes are mutually exclusive")
     reference, destination = reference.resolve(), destination.resolve()
     if (destination == reference or destination.is_relative_to(reference)
             or reference.is_relative_to(destination)):
@@ -73,7 +114,7 @@ def apply(reference, destination, evidence, observe_only=False):
         if (destination / path).read_bytes() != raw:
             raise ValueError("copy differs or already patched: " + path)
         inputs[path] = record(raw)
-        prepared[path] = changes(path, raw.decode("utf-8").replace("\r\n", "\n"), observe_only)
+        prepared[path] = changes(path, raw.decode("utf-8").replace("\r\n", "\n"), observe_only, transfer_only)
     additions = {
         "bsp/common/include/h0_diag.h": ROOT / "diagnostics/tinyspl/h0_diag.h",
         "application/baremetal/bootloader/lib/common/h0_diag.c": ROOT / "diagnostics/tinyspl/h0_diag.c"}
@@ -97,6 +138,7 @@ def apply(reference, destination, evidence, observe_only=False):
               "outputs": {path: record((destination / path).read_bytes())
                           for path in (*prepared, *additions)},
               "observe_only": observe_only,
+              "transfer_only": transfer_only,
               "hardware_validation": "pending", "loadable_image": False}
     (evidence / "patch-inputs.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     return report
@@ -106,10 +148,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     for key in ("reference", "copy", "evidence"):
         parser.add_argument("--" + key, type=Path, required=True)
-    parser.add_argument("--observe-only", action="store_true", help="Return before FIT header/payload reads")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--observe-only", action="store_true", help="Return before FIT header/payload reads")
+    mode.add_argument("--transfer-only", action="store_true", help="Attempt FIT reads then return; block all boot_app jumps")
     args = parser.parse_args()
     try:
-        apply(args.reference, args.copy, args.evidence, args.observe_only)
+        apply(args.reference, args.copy, args.evidence, args.observe_only, args.transfer_only)
     except (OSError, ValueError) as error:
         print(json.dumps({"status": "FAIL", "error": str(error)}))
         sys.exit(1)

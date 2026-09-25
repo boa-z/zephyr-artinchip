@@ -1,0 +1,14 @@
+/* SPDX-License-Identifier: Apache-2.0
+ * Diagnostic allocation only, not a claim about total PSRAM capacity.
+ * First 64 KiB of the previously exercised original-product interval.
+ * Loader owns initialization; no PSRAM controller driver is enabled here.
+ */
+/ {
+    chosen {
+        zephyr,sram = &probe_window;
+    };
+    probe_window: memory@40000000 {
+        compatible = "mmio-sram";
+        reg = <0x40000000 0x10000>;
+    };
+};
