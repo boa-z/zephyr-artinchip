@@ -125,7 +125,15 @@ class MapTests(unittest.TestCase):
 
     def test_local_archive_is_included(self):
         members, _ = bp.map_inputs(self.text, self.root)
-        self.assertTrue(members[0][0].is_relative_to(self.root))
+        # Windows runner TEMP can use an alias/junction while map_inputs returns
+        # resolved paths. Compare both sides in the same canonical namespace.
+        self.assertTrue(members[0][0].is_relative_to(self.root.resolve()))
+
+    def test_build_path_alias_keeps_local_archive(self):
+        alias = self.root / "SDK path" / ".."
+        members, objects = bp.map_inputs(self.text, alias)
+        self.assertEqual(members, [((self.root / "SDK path/lib/libgcc.a").resolve(), "_muldi3.o")])
+        self.assertEqual(objects, [(self.root / "direct.obj").resolve()])
 
     def test_unsafe_member(self):
         with self.assertRaises(ValueError):
