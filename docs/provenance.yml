@@ -3,6 +3,77 @@ human_signoff_pending: true
 review_meaning: File-level source/license/transformation audit only; not legal approval, hardware proof
   or human DCO.
 files:
+- path: diagnostics/tinyspl/h0_diag.h
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Bounded diagnostic recorder interface.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: diagnostics/tinyspl/h0_diag.c
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Original fixed-capacity recorder using source-defined register facts; no
+    SDK runtime copied.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: scripts/instrument_tinyspl.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Context-checked patching of isolated SDK only.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: tests/host/test_tinyspl_patch.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Regression checks for context drift and reference isolation.
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: diagnostics/tinyspl/patches/0001-h0-observation.patch
+  kind: derived
+  license: Apache-2.0
+  license_basis: SDK source SPDX Apache-2.0; original notices retained in target files;
+    human DCO pending.
+  rights_holders:
+  - ArtInChip Technology Co., Ltd
+  - Project contributors
+  changes: Observation hooks only; no PBP modifications. Includes original diagnostic
+    source additions.
+  dependencies:
+  - tinyspl_diagnostic_references
+  sources:
+  - project: local D50T SDK
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: application/baremetal/bootloader/lib/fitimage/fitimage.c
+    sha256: 7af18b76736c44670dcad69a979d1952c1147cb2c2a8e107b5542b45bf333bd0
+  - project: local D50T SDK
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: application/baremetal/bootloader/lib/common/boot_app.c
+    sha256: 963807973bf1d60b35c766a84a8736004103d2b9f94dbecc0bcecb31f6b8e41d
+  - project: local D50T SDK
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: bsp/peripheral/spinand/spinand.c
+    sha256: b569be0cd9536d3dbc8f198944e3f00fca6a50a71b20a7d72a7b491d4f3ef6df
+  - project: local D50T SDK
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: bsp/artinchip/hal/qspi/hal_qspi_v1x.c
+    sha256: 9f0c8a84f01272ad045e4068d4625aff25beab88252738d7a783c65da616c724
+  review_status: reviewed
 - path: tests/host/test_memory_routes.py
   kind: new
   license: Apache-2.0
@@ -1308,3 +1379,25 @@ fixed_slot_host_references:
   - project: local artinchip-flash
     path: src/image/parser.rs
     sha256: e6e2fe8d81115b1e3b6060d97f49fe95d630de2e94066e077fddabd5b285a18b
+tinyspl_diagnostic_references:
+  usage: Read-only source/register reference; isolated derivative patch preserves
+    notices.
+  sources:
+  - project: local D50T SDK
+    path: application/baremetal/bootloader/lib/fitimage/fitimage.c
+    sha256: 7af18b76736c44670dcad69a979d1952c1147cb2c2a8e107b5542b45bf333bd0
+  - project: local D50T SDK
+    path: application/baremetal/bootloader/lib/common/boot_app.c
+    sha256: 963807973bf1d60b35c766a84a8736004103d2b9f94dbecc0bcecb31f6b8e41d
+  - project: local D50T SDK
+    path: bsp/peripheral/spinand/spinand.c
+    sha256: b569be0cd9536d3dbc8f198944e3f00fca6a50a71b20a7d72a7b491d4f3ef6df
+  - project: local D50T SDK
+    path: bsp/artinchip/hal/qspi/hal_qspi_v1x.c
+    sha256: 9f0c8a84f01272ad045e4068d4625aff25beab88252738d7a783c65da616c724
+  - project: local D50T SDK
+    path: bsp/artinchip/hal/dma/hal_dma_reg_v1x.h
+    sha256: c0c6ba3462bfc209be851520f20d5bd7bf696a97320b84c30c7dac3bc41edb5c
+  - project: local D50T SDK
+    path: bsp/artinchip/sys/d13x/startup_gcc.S
+    sha256: 880ddb36f4a69c68029d7782017bbdc5ab4a931fa475d712499598eb3b91f3e1

@@ -1,0 +1,279 @@
+--- a/application/baremetal/bootloader/lib/fitimage/fitimage.c
++++ b/application/baremetal/bootloader/lib/fitimage/fitimage.c
+@@ -1,3 +1,4 @@
++#include <h0_diag.h>
+ /*
+  * Copyright (c) 2022-2026, ArtInChip Technology Co., Ltd
+  *
+@@ -480,6 +481,7 @@
+ {
+     int rdlen = 0;
+     u8 *p = buf;
++    h0_event(1, (uintptr_t)buf, size, offset);
+ 
+     //determines whether the read length is 0
+     if (!size)
+@@ -518,6 +520,7 @@
+         }
+     }
+ 
++    h0_event(2, (uintptr_t)buf, size, (uint32_t)rdlen);
+     return rdlen;
+ }
+ 
+@@ -573,6 +576,8 @@
+         else
+         {
+             start_us =  aic_get_time_us();
++            h0_state(2);
++            h0_event(3, load_addr, length, offset);
+             ret = spl_read(info, offset, (u8 *)load_addr, length);
+             show_speed("spl read", length, aic_get_time_us() - start_us);
+             if (ret < 0)
+@@ -636,6 +641,7 @@
+ 
+ int spl_load_simple_fit(struct spl_load_info *info, ulong *entry_point)
+ {
++    h0_begin();
+     struct fdt_header *header;
+     struct spl_fit_info ctx;
+     void *buf = NULL;
+--- a/application/baremetal/bootloader/lib/common/boot_app.c
++++ b/application/baremetal/bootloader/lib/common/boot_app.c
+@@ -1,3 +1,4 @@
++#include <h0_diag.h>
+ /*
+  * Copyright (c) 2023-2024, ArtInChip Technology Co., Ltd
+  *
+@@ -37,6 +38,10 @@
+     boot_time_show();
+     dev = aic_get_boot_device();
+     boot_arg = (unsigned long)aic_get_boot_args();
++    if (h0_dump((uintptr_t)ep)) {
++        printf("H0-SPL refusing jump: incomplete trace\n");
++        return;
++    }
+     aicos_dcache_clean();
+     aicos_icache_invalid();
+     aicos_local_irq_disable();
+--- a/bsp/peripheral/spinand/spinand.c
++++ b/bsp/peripheral/spinand/spinand.c
+@@ -1,3 +1,4 @@
++#include <h0_diag.h>
+ /*
+  * Copyright (c) 2024-2026, ArtInChip Technology Co., Ltd
+  *
+@@ -1019,6 +1020,7 @@
+     }
+ 
+     buf = malloc(flash->info->page_size + flash->info->oob_size);
++    h0_event(4, (uintptr_t)buf, flash->info->page_size + flash->info->oob_size, 0);
+     if (!buf) {
+         pr_err("Failed to malloc spinand buf.\n");
+         err = -SPINAND_ERR;
+@@ -1098,8 +1100,10 @@
+     }
+ 
+ exit_spinand_read:
+-    if (buf)
++    if (buf) {
++        h0_event(5, (uintptr_t)buf, 0, 0);
+         free(buf);
++    }
+     return err;
+ }
+ 
+--- a/bsp/artinchip/hal/qspi/hal_qspi_v1x.c
++++ b/bsp/artinchip/hal/qspi/hal_qspi_v1x.c
+@@ -1,3 +1,4 @@
++#include <h0_diag.h>
+ /*
+  * Copyright (c) 2022-2026, ArtInChip Technology Co., Ltd
+  *
+@@ -730,8 +731,8 @@
+     qspi_hw_drop_invalid_data(base, QSPI_DROP_INVALID_DATA);
+     qspi_hw_rx_dma_disable(base);
+     qspi_hw_tx_dma_disable(base);
+-    hal_dma_chan_stop(qspi->dma_rx);
+-    hal_dma_chan_stop(qspi->dma_tx);
++    H0_DMA_STOP(qspi->dma_rx);
++    H0_DMA_STOP(qspi->dma_tx);
+     aicos_dcache_invalid_range((void *)(unsigned long)t->rx_data, t->data_len);
+     if (qspi_master_dynamic_dma(qspi)) {
+         hal_release_dma_chan(qspi->dma_tx);
+@@ -836,7 +837,7 @@
+         }
+     tx_stop:
+         qspi_hw_tx_dma_disable(base);
+-        hal_dma_chan_stop(dma_tx);
++        H0_DMA_STOP(dma_tx);
+         if (qspi_master_dynamic_dma(qspi)) {
+             hal_release_dma_chan(dma_tx);
+             qspi->dma_tx = NULL;
+@@ -891,7 +892,7 @@
+         }
+     rx_stop:
+         qspi_hw_rx_dma_disable(base);
+-        hal_dma_chan_stop(dma_rx);
++        H0_DMA_STOP(dma_rx);
+         aicos_dcache_invalid_range((void *)(unsigned long)t->rx_data, t->data_len);
+         if (qspi_master_dynamic_dma(qspi)) {
+             hal_release_dma_chan(dma_rx);
+@@ -1027,7 +1028,7 @@
+ 
+     base = qspi_hw_index_to_base(qspi->idx);
+     qspi_hw_tx_dma_disable(base);
+-    hal_dma_chan_stop(dma_tx);
++    H0_DMA_STOP(dma_tx);
+     if (qspi_master_dynamic_dma(qspi)) {
+         hal_release_dma_chan(dma_tx);
+         qspi->dma_tx = NULL;
+@@ -1065,7 +1066,7 @@
+         len = task->len;
+         aicos_dcache_invalid_range((void *)dst, len);
+     }
+-    hal_dma_chan_stop(dma_rx);
++    H0_DMA_STOP(dma_rx);
+     if (qspi_master_dynamic_dma(qspi)) {
+         hal_release_dma_chan(dma_rx);
+         qspi->dma_rx = NULL;
+@@ -1238,12 +1239,12 @@
+ out:
+     if (ret && qspi_master_dynamic_dma(qspi)) {
+         if (qspi->dma_tx) {
+-            hal_dma_chan_stop(qspi->dma_tx);
++            H0_DMA_STOP(qspi->dma_tx);
+             hal_release_dma_chan(qspi->dma_tx);
+             qspi->dma_tx = NULL;
+         }
+         if (qspi->dma_rx) {
+-            hal_dma_chan_stop(qspi->dma_rx);
++            H0_DMA_STOP(qspi->dma_rx);
+             hal_release_dma_chan(qspi->dma_rx);
+             qspi->dma_rx = NULL;
+         }
+@@ -1339,7 +1340,7 @@
+         qspi_hw_drop_invalid_data(base, QSPI_DROP_INVALID_DATA);
+         qspi_hw_tx_dma_disable(base);
+         if (qspi->dma_tx) {
+-            hal_dma_chan_stop(qspi->dma_tx);
++            H0_DMA_STOP(qspi->dma_tx);
+             if (qspi_master_dynamic_dma(qspi)) {
+                 hal_release_dma_chan(qspi->dma_tx);
+                 qspi->dma_tx = NULL;
+@@ -1353,7 +1354,7 @@
+ #ifdef AIC_DMA_DRV
+         if (qspi->work_mode == QSPI_WORK_MODE_ASYNC_TX_DMA) {
+             if (qspi->dma_tx) {
+-                hal_dma_chan_stop(qspi->dma_tx);
++                H0_DMA_STOP(qspi->dma_tx);
+                 if (qspi_master_dynamic_dma(qspi)) {
+                     hal_release_dma_chan(qspi->dma_tx);
+                     qspi->dma_tx = NULL;
+@@ -1372,7 +1373,7 @@
+                 aicos_dcache_invalid_range((void *)dst, len);
+             }
+             if (dma_rx) {
+-                hal_dma_chan_stop(dma_rx);
++                H0_DMA_STOP(dma_rx);
+                 if (qspi_master_dynamic_dma(qspi)) {
+                     hal_release_dma_chan(dma_rx);
+                     qspi->dma_rx = NULL;
+--- /dev/null
++++ b/bsp/common/include/h0_diag.h
+@@ -0,0 +1,14 @@
++/* SPDX-License-Identifier: Apache-2.0 */
++#ifndef AIC_H0_DIAG_H
++#define AIC_H0_DIAG_H
++#include <stdint.h>
++void h0_begin(void);
++void h0_event(uint32_t kind, uintptr_t address, uint32_t size, uint32_t result);
++void h0_state(uint32_t stage);
++int h0_dump(uintptr_t entry);
++/* Record an existing stop operation's result; do not add a new stop. */
++#define H0_DMA_STOP(channel) do { \
++    int h0_result = hal_dma_chan_stop(channel); \
++    h0_event(6, (uintptr_t)(channel), 0, (uint32_t)h0_result); \
++} while (0)
++#endif
+--- /dev/null
++++ b/application/baremetal/bootloader/lib/common/h0_diag.c
+@@ -0,0 +1,78 @@
++/* SPDX-License-Identifier: Apache-2.0
++ * Original bounded diagnostic recorder. Register facts: docs/provenance.yml.
++ * Offline diagnostic SPL only; not a hardware safety or recovery assertion.
++ */
++#include <stdint.h>
++#include <stdio.h>
++#include <h0_diag.h>
++
++struct event { uint32_t kind, address, size, result; };
++static struct event events[256];
++static unsigned int used, dropped, active;
++static uint32_t irq_lock(void)
++{
++    uint32_t state;
++    __asm__ volatile ("csrrci %0, mstatus, 8" : "=r"(state) :: "memory");
++    return state;
++}
++static void irq_restore(uint32_t state)
++{
++    if (state & 8)
++        __asm__ volatile ("csrsi mstatus, 8" ::: "memory");
++}
++void h0_event(uint32_t kind, uintptr_t address, uint32_t size, uint32_t result)
++{
++    uint32_t state = irq_lock();
++    if (active) {
++        if (used < sizeof(events) / sizeof(events[0]))
++            events[used++] = (struct event){kind, address, size, result};
++        else if (dropped != ~0U)
++            dropped++;
++    }
++    irq_restore(state);
++}
++static uint32_t reg_read(uintptr_t address)
++{
++    return *(volatile uint32_t *)address;
++}
++void h0_state(uint32_t stage)
++{
++    uint32_t state = irq_lock(), mie, mtvec, cache;
++    __asm__ volatile ("csrr %0, mie" : "=r"(mie));
++    __asm__ volatile ("csrr %0, mtvec" : "=r"(mtvec));
++    __asm__ volatile ("csrr %0, 0x7c1" : "=r"(cache));
++    h0_event(10, stage, state, mie);
++    h0_event(11, stage, mtvec, cache);
++    /* Source-defined SYSCFG TCM/SRAM configuration and SYSMAP pairs.
++     * Readback is raw: no claim that these exhaust all aliases or bus masters.
++     */
++    h0_event(12, 0x18000160, stage, reg_read(0x18000160));
++    for (unsigned int i = 0; i < 16; i++)
++        h0_event(13, 0x2ffff000 + i * 4, stage, reg_read(0x2ffff000 + i * 4));
++    for (unsigned int i = 0; i < 8; i++)
++        h0_event(14, 0x10000100 + i * 0x40, stage, reg_read(0x10000100 + i * 0x40));
++    irq_restore(state);
++}
++void h0_begin(void)
++{
++    uint32_t state = irq_lock();
++    used = dropped = 0;
++    active = 1;
++    irq_restore(state);
++    h0_state(1);
++    printf("H0-SPL begin schema=1 instrumentation=active acceptance=pending\n");
++}
++int h0_dump(uintptr_t entry)
++{
++    h0_state(3);
++    uint32_t state = irq_lock();
++    active = 0;
++    irq_restore(state);
++    printf("H0-SPL entry=%08lx count=%u dropped=%u\n", (unsigned long)entry, used, dropped);
++    for (unsigned int i = 0; i < used; i++)
++        printf("H0-E %u %u %08lx %08lx %08lx\n", i, (unsigned int)events[i].kind,
++               (unsigned long)events[i].address, (unsigned long)events[i].size,
++               (unsigned long)events[i].result);
++    printf("H0-SPL end evidence=%s hardware=pending\n", dropped ? "INCOMPLETE" : "CAPTURED");
++    return dropped ? -1 : 0;
++}

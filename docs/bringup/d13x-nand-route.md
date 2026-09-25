@@ -42,6 +42,11 @@ the source/config-to-loader build receipt is still missing.
 
 ## No-debugger observation proposal (not implemented)
 
+Follow-up: the owner subsequently accepted isolated diagnostic tinySPL work.
+See [isolated build evidence](d13x-diagnostic-spl.md) for the implemented first
+instrumentation revision and its limits. The following proposal records the
+scope as it stood before that authorization.
+
 The owner has COM11 at 115200 and no debugger interface. A diagnostic OS runs
 only after the loader has written its payload. Therefore an OS entry probe
 cannot observe the earlier allocation and transfer lifetime, and cannot prove
