@@ -1,6 +1,7 @@
 # D133ECS preflight
 
 Status: software candidate / HARDWARE_PENDING, 2026-09-25.
+Current installed-board observations and unknowns: d13x-handoff.yml.
 Target: `d50t_2_lite/d133ecs`. Family/series/part identifiers describe ArtInChip
 D13x / D133ECS; `boa` denotes a downstream community board, not an official vendor.
 
@@ -22,7 +23,7 @@ D13x / D133ECS; `boa` denotes a downstream community board, not an official vend
 | Power hold PE16 high | Product target board.c | Loader obligation; candidate has no GPIO driver initialization |
 | Clock / oscillator / boot media | Product configuration references PLL and external NAND | No oscillator, storage or CMU driver copied; actual board/loader log required |
 | Cache line 32 bytes | Fixed D13x Kconfig.chip and core header | Preserve inherited cache/map state; maintenance validation NOT_RUN |
-| Existing bootloader build | Product out/firmware/bootloader/d13x.elf + map | Its PSRAM link region is not proof of installed loader identity |
+| Prior bootloader build reference | Product out/firmware/bootloader/d13x.elf + map, previously reported; ELF path absent during R1 | Neither a prior local link map nor an absent file proves installed loader identity |
 
 Sources and exact original hashes are recorded in `../provenance.yml`.
 The fixed SDK has no D50T board. Product-specific evidence is additional evidence,

@@ -29,7 +29,7 @@ in the current process and invoke `.venv/Scripts/python` explicitly.
 
 `zephyr-upstream` is an isolated official dependency clone so an existing `zephyr`
 fork is not changed. Its HEAD is pinned to
-`839728050444f90d06870b5fc9bbbda106d91459`; the explicit CLIC layout and width-validation patches is applied
+`839728050444f90d06870b5fc9bbbda106d91459`; the explicit CLIC layout and width-validation patches are applied
 on top and verified by `scripts/apply_patches.py --check`. **The dependency is
 patched**, not an unmodified upstream build. `patches/zephyr/series.json` and its
 patch files are required in addition to `west manifest --freeze`.
@@ -59,7 +59,9 @@ are passed explicitly; module declarations alone do not run tests. QEMU must
 execute all 7 configurations / 23 cases. D13x is 3 build-only configurations and
 zero runtime passes. JSON, xUnit, handler and build logs are retained by Twister.
 `.github/workflows/ci.yml` enforces these downstream gates with no failure bypass;
-its remote workflow has not been run or published locally.
+the prior remote run 36092052502 failed during cross-drive artifact upload.
+The revised R1 workflow has local archive checks; its remote rerun is pending
+separate push authorization.
 
 Interactive sample: `west build -b qemu_riscv32 samples/bringup -d build-qemu`,
 then `west build -d build-qemu -t run`. Expected lines are
@@ -91,7 +93,8 @@ or automatic programming is provided.
 `docs/bringup/d13x-z0-validation.md` defines recoverable hardware acceptance and
 failure diagnosis. CPU-visible aligned memory persistence is tested; cache
 maintenance, DMA/display coherency and PSRAM remain NOT_RUN.
-See `docs/validation-report.md` for this delivery's exact results and artifacts.
+See `docs/validation-r1-report.md` for the R1 results and candidate index.
+`docs/validation-report.md` preserves the earlier delivery's historical evidence.
 
 ## Policy
 

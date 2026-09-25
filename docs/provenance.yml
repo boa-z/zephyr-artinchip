@@ -819,3 +819,40 @@ files:
   - Pinned Zephyr generated build metadata
   - Python standard library
   review_status: reviewed
+- path: docs/bringup/d13x-handoff.yml
+  kind: reference-only
+  license: Apache-2.0
+  license_basis: Original handoff record; cited SDK files carry Apache-2.0 notices. No SDK runtime is
+    imported.
+  rights_holders:
+  - Project contributors
+  - ArtInChip Technology Co., Ltd
+  changes: Record source-derived constraints separately from unknown installed-board state; no hardware
+    authorization.
+  dependencies: []
+  review_status: reviewed
+  sources:
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: application/baremetal/bootloader/cmd/ram_boot.c
+    sha256: 6b5cd02ab101bfcf1a97042c1e2954a9ce8f1ff69fb458e3eb823bad64c61198
+  - project: boa-w/luban-lite
+    revision: c5807f9e7d18292f920dafaa018b8174635085c4
+    path: application/baremetal/bootloader/lib/common/boot_app.c
+    sha256: dce5bcb1c233b51aef0e0a06a10f4f050d09058378109cae0c0437462f18897d
+  - project: boa-z/zephyr-artinchip
+    revision: f2ce05eadfe690500b864b8eef0328d2000bbd24
+    path: boards/boa/d50t_2_lite/d50t_2_lite.dts
+    sha256: 0abcaafd1048298c7324eb8f1f13fa60c81dc95875a0809e285a19cede5d8ff2
+  - project: boa-z/zephyr-artinchip
+    revision: f2ce05eadfe690500b864b8eef0328d2000bbd24
+    path: dts/riscv/artinchip/d133ecs.dtsi
+    sha256: b6951122b14f093d3344956af07ffc7ff621448d64b4f1c5e2d1effa7e3f49ee
+  - project: boa-z/zephyr-artinchip
+    revision: f2ce05eadfe690500b864b8eef0328d2000bbd24
+    path: docs/baseline.md
+    sha256: b429771e08073f0571a93dcd059b567a353e8ca6fef4a779e9436020705b2027
+  - project: boa-z/zephyr-artinchip
+    revision: f2ce05eadfe690500b864b8eef0328d2000bbd24
+    path: docs/bringup/d13x-preflight.md
+    sha256: 18a7c9664be24643d2e35d720ea4d3e8314798a401f352e9d93069dbb3f2cb33

@@ -1,0 +1,156 @@
+schema_version: 1
+record_date: '2026-09-25'
+gate: Z0.H0
+status: BLOCKED
+hardware_validation: pending
+loadable_image: false
+upstream_ready: 'no'
+items:
+  physical_board_revision:
+    classification: unknown
+    value: null
+    status: BLOCKED
+    evidence: []
+    required_evidence: PCB revision, verified part marking, electrical interface and recovery evidence
+      from the actual board.
+  requested_profile:
+    classification: source-derived
+    value:
+      board: D50T-2-Lite
+      part: D133ECS
+      nominal_sram_bytes: 1048576
+      nominal_psram_bytes: 16777216
+    evidence:
+    - project: boa-z/zephyr-artinchip
+      revision: f2ce05eadfe690500b864b8eef0328d2000bbd24
+      path: docs/baseline.md
+      sha256: b429771e08073f0571a93dcd059b567a353e8ca6fef4a779e9436020705b2027
+    limits: Owner-required profile recorded in baseline; not a measured installed-board identity.
+  installed_loader:
+    classification: unknown
+    value: null
+    status: BLOCKED
+    evidence: []
+    required_evidence: Installed version/hash or verifiable boot log; a local SDK ELF is not an installed
+      identity.
+  reference_loader:
+    classification: source-derived
+    value: Pinned ram_boot.c recognizes AIC headers or uses the FIT loader; boot_app.c resolves the image
+      entry. Staging copies and loader state require separate installed-version analysis.
+    evidence:
+    - project: boa-w/luban-lite
+      revision: c5807f9e7d18292f920dafaa018b8174635085c4
+      path: application/baremetal/bootloader/cmd/ram_boot.c
+      sha256: 6b5cd02ab101bfcf1a97042c1e2954a9ce8f1ff69fb458e3eb823bad64c61198
+    - project: boa-w/luban-lite
+      revision: c5807f9e7d18292f920dafaa018b8174635085c4
+      path: application/baremetal/bootloader/lib/common/boot_app.c
+      sha256: dce5bcb1c233b51aef0e0a06a10f4f050d09058378109cae0c0437462f18897d
+    limits: Reference source only; no RAM loading command or format is authorized by this evidence.
+  accepted_container_and_signature:
+    classification: unknown
+    value: null
+    status: BLOCKED
+    evidence: []
+    required_evidence: Installed loader format, headers, verification/signature policy and actual normal
+      load/jump path.
+  candidate_link_allocation:
+    classification: source-derived
+    value:
+      start: '0x30080000'
+      end_exclusive: '0x30100000'
+      psram_enabled: false
+    evidence:
+    - &id001
+      project: boa-z/zephyr-artinchip
+      revision: f2ce05eadfe690500b864b8eef0328d2000bbd24
+      path: boards/boa/d50t_2_lite/d50t_2_lite.dts
+      sha256: 0abcaafd1048298c7324eb8f1f13fa60c81dc95875a0809e285a19cede5d8ff2
+    - &id003
+      project: boa-z/zephyr-artinchip
+      revision: f2ce05eadfe690500b864b8eef0328d2000bbd24
+      path: dts/riscv/artinchip/d133ecs.dtsi
+      sha256: b6951122b14f093d3344956af07ffc7ff621448d64b4f1c5e2d1effa7e3f49ee
+    limits: Software allocation only, not proven free physical RAM. No staging address selected.
+  ram_ownership:
+    classification: unknown
+    value: null
+    status: BLOCKED
+    evidence: []
+    required_evidence: Installed loader code/stack/heap/boot arguments/DMA reservations, staging, copying/decompression
+      peak use, and overlaps with every candidate PT_LOAD span.
+  cpu_handoff:
+    classification: unknown
+    value: null
+    status: BLOCKED
+    evidence: []
+    required_evidence: Verified M-mode, interrupt mask, trap setup, mxstatus/mexstatus/FPU and TCM/map/cache
+      state; do not probe unknown CSRs.
+  uart_source_configuration:
+    classification: source-derived
+    value:
+      instance: UART0
+      tx: PA0
+      rx: PA1
+      pin_function: 5
+      clock_hz: 48000000
+      baud: 115200
+    evidence:
+    - *id001
+    - &id002
+      project: boa-z/zephyr-artinchip
+      revision: f2ce05eadfe690500b864b8eef0328d2000bbd24
+      path: docs/bringup/d13x-preflight.md
+      sha256: 18a7c9664be24643d2e35d720ea4d3e8314798a401f352e9d93069dbb3f2cb33
+    limits: Product configuration evidence, not PCB routing, electrical levels or measured clock.
+  uart_actual_handoff:
+    classification: unknown
+    value: null
+    status: BLOCKED
+    evidence: []
+    required_evidence: Verified UART instance, routing/electrical levels and measured/confirmed inherited
+      clock and baud.
+  power_hold_reference:
+    classification: source-derived
+    value: PE16 high in the product board reference; candidate expects loader ownership.
+    evidence:
+    - *id002
+  power_hold_actual:
+    classification: unknown
+    value: null
+    status: BLOCKED
+    evidence: []
+    required_evidence: Confirm whether PE16 power hold is required and remains configured across loader
+      handoff.
+  timer_clic_reference:
+    classification: source-derived
+    value:
+      timer_hz: 4000000
+      timer_irq: 7
+      clic_base: '0xe0800000'
+      irq_slots: 96
+    evidence:
+    - *id003
+    limits: Source and fake-MMIO encoding evidence do not establish actual CLICINFO, CSR/trap/mret behavior
+      or elapsed time.
+  timer_clic_actual:
+    classification: unknown
+    value: null
+    status: BLOCKED
+    evidence: []
+    required_evidence: Independent timer wall-time reference and safe debugger/loader CLICINFO evidence
+      after hardware access is authorized.
+  recovery_and_permission:
+    classification: unknown
+    value: null
+    status: BLOCKED
+    evidence: []
+    required_evidence: Proven recovery path, named human operator and explicit scope of permitted board
+      operations before any RAM load or flash operation.
+local_observation:
+  classification: observed
+  value: The previously cited local out/firmware/bootloader/d13x.elf path was absent during this read-only
+    R1 check. No physical connection or board observation was made.
+  evidence:
+  - path: artifacts/r1-h0-sources.json
+    kind: local source audit output

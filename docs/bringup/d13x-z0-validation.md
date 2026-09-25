@@ -8,8 +8,8 @@ for this delivery. QEMU results are generic RISC-V results, not D13x results.
 From an activated workspace with the pinned SDK and recorded patches applied:
 
 ```sh
-west build -b d50t_2_lite/d133ecs samples/bringup -d build-d13x
-python scripts/package_candidate.py build-d13x artifacts/d13x-candidate
+python scripts/build_candidate.py bringup C:/tmp/aic-candidate-bringup
+python scripts/package_candidate.py C:/tmp/aic-candidate-bringup artifacts/candidates/bringup
 west twister -p d50t_2_lite/d133ecs -T samples/bringup -T tests/kernel -T tests/fpu --board-root boards --build-only --outdir C:/tmp/aic-d13x
 ```
 
@@ -18,6 +18,11 @@ paths). On Linux substitute a short local `/tmp` directory; Linux has not been
 validated locally. Board-specific test configs opt into the candidate boot
 contract; the SoC rejects builds that do not explicitly accept that contract.
 Build-only scenarios must never be counted as executed test passes.
+
+Build and collect kernel and fpu separately using the same controlled entry point.
+Each candidate has its own receipt and ELF hash; the bringup ELF is not the kernel
+or FPU test image. Current hardware facts and blockers are recorded in
+d13x-handoff.yml.
 
 ## Physical acceptance (NOT_RUN)
 

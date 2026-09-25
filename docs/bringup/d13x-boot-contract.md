@@ -50,3 +50,7 @@ header/signing requirements, RAM staging address, relocation overlap rules and
 entry contract are confirmed. Preserve bootloader, partitions and production data.
 Recovery/RAM loading instructions must be supplied from that verified loader;
 there is no guessed flash command, bypassed signature or destructive fallback.
+
+Current machine-readable handoff facts and unresolved fields are maintained in
+d13x-handoff.yml. Source-derived formats and link ranges are not observed loader
+capabilities or free-memory proof; this contract remains blocked until resolved.
