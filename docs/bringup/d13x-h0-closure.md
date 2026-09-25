@@ -177,3 +177,10 @@ Final host verification: 97 tests PASS (artifacts/logs/h0-closure-final-host.log
 lint PASS, provenance PASS, diff whitespace check PASS. Five additional offline
 negative checks rejected altered candidate bytes, rehashed receipt inconsistency,
 truncated/trailing FIT data and a changed hash algorithm. No hardware test ran.
+
+Follow-up offline tool review: [pre-board observations](d13x-preboard.md) records
+the installed upgcmd RAM-to-shell call chain and a reproducible hash-bound audit.
+It does not close the RAM ownership/recovery gates or change firmware candidates.
+Follow-up validation: 101 host tests PASS; lint and provenance PASS. The installed
+tool audit matched its reviewed hash and returned exit 2 (BLOCKED), as designed.
+No board connection, firmware execution, flashing or recovery rehearsal occurred.

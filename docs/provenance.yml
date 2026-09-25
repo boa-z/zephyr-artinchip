@@ -3,6 +3,22 @@ human_signoff_pending: true
 review_meaning: File-level source/license/transformation audit only; not legal approval, hardware proof
   or human DCO.
 files:
+- path: scripts/audit_ramboot_tool.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original audit implementation; repository LICENSE; human DCO pending.
+  rights_holders: [Project contributors]
+  changes: Read-only hash-bound lookup of manually reviewed tool behavior; no vendor runtime copied.
+  dependencies: [Python standard library, installed_aiburn_references]
+  review_status: reviewed
+- path: tests/host/test_ramboot_tool.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original tests; repository LICENSE; human DCO pending.
+  rights_holders: [Project contributors]
+  changes: Unknown-profile, identity-drift, nonexecution and blocked-gate regression tests.
+  dependencies: [Python standard library]
+  review_status: reviewed
 - path: CMakeLists.txt
   kind: new
   license: Apache-2.0
@@ -1221,7 +1237,7 @@ h0_closure_references:
     path: application/baremetal/bootloader/lib/aicupg/upg_main.c
     sha256: 52c0bb9d8ce1412275eb2c5ba6797a23228e116cf58e4a7f1c0ee6c314f15db6
 installed_aiburn_references:
-  usage: Reference-only executable metadata and embedded help inspection; no code copied, executable launched
+  usage: Reference-only executable metadata, embedded help and offline disassembly inspection; no code copied, executable launched
     or device accessed
   license: Vendor binaries; redistribution rights not established; none redistributed
   sources:
