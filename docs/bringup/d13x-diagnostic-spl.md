@@ -114,3 +114,9 @@ Next packaging must separately bind the new SPL to its AIC header/updater/target
 containers and verify preserved PBP bytes and revised loader ranges. Memory
 ownership, recovery and physical execution remain unverified:
 `loadable_image=false`, `hardware_validation=pending`.
+
+Follow-up: the owner requested progression to a burnable manual experiment.
+[H0 observation trial](d13x-observe-flash-guide.md) delivers a separate
+observe-only SPL image that returns before all OS FIT reads. It retains the
+original product OS and updater, and does not run the transfer-capable diagnostic
+revision described above. Its explicit H0 trial readiness is not H1 acceptance.

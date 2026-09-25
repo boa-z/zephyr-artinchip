@@ -3,6 +3,51 @@ human_signoff_pending: true
 review_meaning: File-level source/license/transformation audit only; not legal approval, hardware proof
   or human DCO.
 files:
+- path: scripts/observation_image.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Fixed-profile observation SPL wrapper, additive checksum/MD5 and byte-range
+    verification; original PBP and updater retained.
+  dependencies:
+  - image_roundtrip_references
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: scripts/check_observation_log.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Strict offline log sequence checker; no hardware acceptance inferred.
+  dependencies:
+  - image_roundtrip_references
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: tests/host/test_observation_image.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: AIC wrapper identity, integrity and preservation regression checks.
+  dependencies:
+  - image_roundtrip_references
+  - tinyspl_diagnostic_references
+  review_status: reviewed
+- path: tests/host/test_observation_log.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Incomplete, reordered and duplicate observation log rejection.
+  dependencies:
+  - image_roundtrip_references
+  - tinyspl_diagnostic_references
+  review_status: reviewed
 - path: diagnostics/tinyspl/h0_diag.h
   kind: new
   license: Apache-2.0

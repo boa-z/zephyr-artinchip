@@ -23,7 +23,7 @@ def once(text, old, new):
     return text.replace(old, new)
 
 
-def changes(path, text):
+def changes(path, text, observe_only=False):
     original = text
     text = '#include <h0_diag.h>\n' + text
     if path == FIT:
@@ -33,6 +33,8 @@ def changes(path, text):
                     "            h0_state(2);\n            h0_event(3, load_addr, length, offset);\n            ret = spl_read(info, offset, (u8 *)load_addr, length);")
         signature = "int spl_load_simple_fit(struct spl_load_info *info, ulong *entry_point)\n{"
         text = once(text, signature, signature + "\n    h0_begin();")
+        if observe_only:
+            text = once(text, "    h0_begin();", "    h0_begin();\n    h0_dump(0);\n    printf(\"H0-OBSERVE-ONLY: OS not read; no payload jump; return to console\\n\");\n    return -1;")
     elif path == BOOT:
         text = once(text, "    aicos_dcache_clean();",
                     "    if (h0_dump((uintptr_t)ep)) {\n        printf(\"H0-SPL refusing jump: incomplete trace\\n\");\n        return;\n    }\n    aicos_dcache_clean();")
@@ -53,7 +55,7 @@ def changes(path, text):
     return text
 
 
-def apply(reference, destination, evidence):
+def apply(reference, destination, evidence, observe_only=False):
     reference, destination = reference.resolve(), destination.resolve()
     if (destination == reference or destination.is_relative_to(reference)
             or reference.is_relative_to(destination)):
@@ -71,7 +73,7 @@ def apply(reference, destination, evidence):
         if (destination / path).read_bytes() != raw:
             raise ValueError("copy differs or already patched: " + path)
         inputs[path] = record(raw)
-        prepared[path] = changes(path, raw.decode("utf-8").replace("\r\n", "\n"))
+        prepared[path] = changes(path, raw.decode("utf-8").replace("\r\n", "\n"), observe_only)
     additions = {
         "bsp/common/include/h0_diag.h": ROOT / "diagnostics/tinyspl/h0_diag.h",
         "application/baremetal/bootloader/lib/common/h0_diag.c": ROOT / "diagnostics/tinyspl/h0_diag.c"}
@@ -94,6 +96,7 @@ def apply(reference, destination, evidence):
     report = {"reference": str(reference), "copy": str(destination), "inputs": inputs,
               "outputs": {path: record((destination / path).read_bytes())
                           for path in (*prepared, *additions)},
+              "observe_only": observe_only,
               "hardware_validation": "pending", "loadable_image": False}
     (evidence / "patch-inputs.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     return report
@@ -103,9 +106,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     for key in ("reference", "copy", "evidence"):
         parser.add_argument("--" + key, type=Path, required=True)
+    parser.add_argument("--observe-only", action="store_true", help="Return before FIT header/payload reads")
     args = parser.parse_args()
     try:
-        apply(args.reference, args.copy, args.evidence)
+        apply(args.reference, args.copy, args.evidence, args.observe_only)
     except (OSError, ValueError) as error:
         print(json.dumps({"status": "FAIL", "error": str(error)}))
         sys.exit(1)
