@@ -1,0 +1,12 @@
+common:
+  platform_allow: qemu_riscv32
+  tags: interrupt
+  timeout: 60
+tests:
+  artinchip.clic.legacy:
+    extra_configs:
+      - CONFIG_AIC_CLIC_TEST_LEGACY=y
+  artinchip.clic.generic: {}
+  artinchip.clic.nuclei:
+    extra_configs:
+      - CONFIG_AIC_CLIC_TEST_NUCLEI=y

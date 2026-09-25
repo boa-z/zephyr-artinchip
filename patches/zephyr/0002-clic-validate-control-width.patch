@@ -1,0 +1,14 @@
+--- a/drivers/interrupt_controller/intc_clic.c
++++ b/drivers/interrupt_controller/intc_clic.c
+@@ -293,6 +293,11 @@
+ 		csr_write(CSR_MINTTHRESH, 0x0);
+ 	}
+ 
++	/* clicintctl is one byte; larger widths make priority shifts invalid. */
++	if (data->intctlbits > 8U || data->nlbits > data->intctlbits) {
++		return -EINVAL;
++	}
++
+ 	if (IS_ENABLED(CONFIG_CLIC_SMCLICCONFIG_EXT)) {
+ #ifdef CONFIG_LEGACY_CLIC_MEMORYMAP_ACCESS
+ 		/* Configure the number of bits assigned to interrupt levels. */

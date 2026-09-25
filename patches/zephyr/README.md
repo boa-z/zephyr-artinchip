@@ -1,7 +1,7 @@
 # Prerequisite series
 
 Base: official Zephyr `839728050444f90d06870b5fc9bbbda106d91459`.
-Patch: legacy CLICCFG layout and MMIO threshold, 3 files, 10 additions/2 deletions.
+First patch: legacy CLICCFG layout and MMIO threshold, 3 files, 10 additions/2 deletions.
 Staging branch: `prereq/d13x-clic` in the isolated `zephyr-d13x-staging` tree.
 The user's original `zephyr` fork remains unchanged. See series.json for commit,
 patch checksum and resulting Git blob identities.
@@ -28,3 +28,21 @@ HARDWARE_PENDING. Human sign-off and upstream review remain pending.
 Removal condition: an upstream equivalent supports the actual E907 register
 layout. Update the base, remove the patch and replay/regress both targets in one
 change. Future upstream staging must include a consumer and hardware evidence.
+
+## Width-validation prerequisite
+
+The second patch rejects INTCTLBITS greater than the eight-bit control register
+and a level width greater than the effective control width. Zero control/level
+bits remain valid. It follows the layout patch on the same base and changes only
+clic_init; no trap, scheduler or interrupt return code changes. Invalid widths
+previously reached negative priority shift counts. The fake-MMIO suite reproduced
+initialization accepting values 9..15 before this guard. Legacy and Nuclei keep
+the existing level clamp; the generic branch rejects an inconsistent configured
+level. Valid generic/Nuclei layouts retain their register encoding.
+
+The initial staging commit in series.json applies to patch 1 only. Patch 2 is a
+replayable diff applied with git apply --check to the isolated dependency. Both
+hashes and final blobs are verified. tests/clic compiles this actual driver under
+legacy, generic and Nuclei configurations on QEMU with injected register I/O.
+This tests register access/encoding, not real E907 CSR/trap/mret behavior. Remove
+the guard patch when an equivalent checked initialization is in the pinned base.

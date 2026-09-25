@@ -675,3 +675,82 @@ files:
   dependencies:
   - Pinned Zephyr APIs and local Python runtime
   review_status: reviewed
+- path: tests/clic/CMakeLists.txt
+  kind: new
+  license: Apache-2.0
+  license_basis: Original fake-MMIO regression wrapper; repository LICENSE. Included upstream source retains
+    original notices.
+  rights_holders:
+  - Project contributors
+  changes: Compile the actual pinned and patched CLIC driver; inject only device, MMIO and CSR access.
+    No driver algorithm is copied into the test.
+  dependencies:
+  - Pinned Zephyr driver plus recorded prerequisite series
+  review_status: reviewed
+- path: tests/clic/Kconfig
+  kind: new
+  license: Apache-2.0
+  license_basis: Original fake-MMIO regression wrapper; repository LICENSE. Included upstream source retains
+    original notices.
+  rights_holders:
+  - Project contributors
+  changes: Compile the actual pinned and patched CLIC driver; inject only device, MMIO and CSR access.
+    No driver algorithm is copied into the test.
+  dependencies:
+  - Pinned Zephyr driver plus recorded prerequisite series
+  review_status: reviewed
+- path: tests/clic/prj.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original fake-MMIO regression wrapper; repository LICENSE. Included upstream source retains
+    original notices.
+  rights_holders:
+  - Project contributors
+  changes: Compile the actual pinned and patched CLIC driver; inject only device, MMIO and CSR access.
+    No driver algorithm is copied into the test.
+  dependencies:
+  - Pinned Zephyr driver plus recorded prerequisite series
+  review_status: reviewed
+- path: tests/clic/tests.yaml
+  kind: new
+  license: Apache-2.0
+  license_basis: Original fake-MMIO regression wrapper; repository LICENSE. Included upstream source retains
+    original notices.
+  rights_holders:
+  - Project contributors
+  changes: Compile the actual pinned and patched CLIC driver; inject only device, MMIO and CSR access.
+    No driver algorithm is copied into the test.
+  dependencies:
+  - Pinned Zephyr driver plus recorded prerequisite series
+  review_status: reviewed
+- path: tests/clic/src/main.c
+  kind: new
+  license: Apache-2.0
+  license_basis: Original fake-MMIO regression wrapper; repository LICENSE. Included upstream source retains
+    original notices.
+  rights_holders:
+  - Project contributors
+  changes: Compile the actual pinned and patched CLIC driver; inject only device, MMIO and CSR access.
+    No driver algorithm is copied into the test.
+  dependencies:
+  - Pinned Zephyr driver plus recorded prerequisite series
+  review_status: reviewed
+- path: patches/zephyr/0002-clic-validate-control-width.patch
+  kind: derived
+  license: Apache-2.0
+  license_basis: Original upstream driver file SPDX Apache-2.0; existing notices unchanged; human DCO
+    review pending.
+  rights_holders:
+  - Tokita, Hiroshi
+  - Andes Technology Corporation
+  - Project contributors
+  changes: Reject impossible control widths and inconsistent generic level widths before priority encoding.
+    Applied after patch 1.
+  dependencies:
+  - patches/zephyr/0001-clic-legacy-mmio-layout.patch
+  review_status: reviewed
+  sources:
+  - project: zephyrproject-rtos/zephyr
+    revision: 839728050444f90d06870b5fc9bbbda106d91459
+    path: drivers/interrupt_controller/intc_clic.c
+    sha256: 24f240344eb2e14cf3859c2cefd004f6e98497a5e9c8c55a831636caafed3767

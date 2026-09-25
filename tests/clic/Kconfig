@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+mainmenu "CLIC register regression"
+source "Kconfig.zephyr"
+
+config AIC_CLIC_TEST_LEGACY
+	bool "Test legacy register layout"
+	default n
+
+config AIC_CLIC_TEST_NUCLEI
+	bool "Test Nuclei register layout"
+	default n
