@@ -390,3 +390,15 @@ spin_switch（对等真实切换）同样 count=0 失败，spin_yield 失败。
 - post 行先于断言打印；断言为 wfi 后 ISR 进展（QEMU 成立）。
   非 D13x 下跳过 IP 轮询（QEMU 以计数为准）。
 - 用例清单增至 9 项（evidence.py 与主机测试同步）。
+
+## 第九轮交付（待实板）
+
+产物：artifacts/z0-kernel-r9-delivery/D50T_Z0_kernel_r9_diag.img。
+SHA-256: 3e27bfd492c8d3194c1ef7a8d2d549ee90beb6aa402ac840301102f15dc684fb。
+QEMU 9/9（C:/tmp/aic-qemu-r9b）；D13x 目标构建
+C:/aic-z0-kernel-window-v10（干净树），文件 38560 字节，RAM 51616/65536；
+打包器按第九轮 ELF/BIN 固定哈希验证（提交 09ab4e0），篡改负检查拒绝。
+使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
+特别保留 KERNEL-WFIPROBE pre/post 行。
+若日志止于 stage=pre ip=1 即为 wfi 未唤醒：保存日志，复位并烧回原版。
+第九轮 hardware_validation=pending。
