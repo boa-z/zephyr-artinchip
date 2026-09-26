@@ -238,3 +238,14 @@ user-result.json。恢复待用户确认。
   IP=0 为“比较器输出未到达 CLIC”。
 - 用例清单增至 7 项（evidence.py 与主机测试同步）；QEMU 下采样
   填零、不影响判定。
+
+## 第五轮交付（待实板）
+
+产物：artifacts/z0-kernel-r5-delivery/D50T_Z0_kernel_r5_diag.img。
+SHA-256: f24e4fb117c2abbeeeaf121c7518b9dddadf18f8daaf4729da98fc1b9a67a5f9。
+QEMU 7/7（C:/tmp/aic-qemu-r5）；D13x 目标构建
+C:/aic-z0-kernel-window-v6（干净树），文件 36824 字节，RAM 48352/65536；
+打包器按第五轮 ELF/BIN 固定哈希验证（提交 50174f9），篡改负检查拒绝。
+使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
+特别保留 KERNEL-SPINPROBE 行与扩展的 KERNEL-TICKDBG 行。
+第五轮 hardware_validation=pending。
