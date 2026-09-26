@@ -190,3 +190,13 @@ exit_mie/exit_irqen。QEMU 下该结构填充为零，不影响 6/6 判定。
 判读：exit_mtime>=exit_cmp 且 count=0 为“已挂载但未投递/未断言”；
 exit_mtime<exit_cmp 为“内核未挂载”。mip/mie 按标准机时中断位对照，
 CLIC 模式下的最终解释以硬件手册为准。
+
+## 第四轮交付（待实板）
+
+产物：artifacts/z0-kernel-tickdbg-delivery/D50T_Z0_kernel_tickdbg_diag.img。
+SHA-256: b70fbd0442f845b7ff0b6259f7eb3b127c2818ea7dbd3757c1743942e54144a7。
+QEMU 6/6（C:/tmp/aic-qemu-tickdbg）；D13x 目标构建
+C:/aic-z0-kernel-window-v5（干净树），文件 36224 字节，RAM 47728/65536；
+打包器按第四轮 ELF/BIN 固定哈希验证（提交 68d1ede），篡改负检查拒绝。
+使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
+特别保留 KERNEL-TICKDBG 行。第四轮 hardware_validation=pending。
