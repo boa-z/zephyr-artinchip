@@ -11,9 +11,9 @@ from image_roundtrip import BASELINE
 from test_image import replace_os, verify_replacement
 from zephyr_fit import encode, verify, reconstruct_binary
 
-ELF_SHA = '8da7cfd506cedb3b384f679d740e25ad8b7a5281eee257d64699db42f4358ffa'
-BIN_SHA = 'db05dd4753eee857642b62ab6fdf0f44df22d617db957254662c049130d503a8'
-IMAGE_NAME = 'D50T_Z0_kernel_tickdbg_diag.img'
+ELF_SHA = '8cbd1fe1b616f46b181154dad787737e9001d2e745a657a2b35f26fd44946b53'
+BIN_SHA = 'be1f368d4922459dd121e58591bab41d51e6b19e137eb8645e26fc9a9ea02d4e'
+IMAGE_NAME = 'D50T_Z0_kernel_r5_diag.img'
 
 
 def package(reference, elf_data, raw):
@@ -50,7 +50,7 @@ def package(reference, elf_data, raw):
                   manual_experiment_ready=True, loadable_image=False,
                   elf=record(elf_data), binary=record(raw), entry=entry,
                   memory_start=0x40000000, memory_end=0x40000000 + segment['p_memsz'],
-                  limits='QEMU 6/6 passed; physical kernel/timer acceptance pending full ztest result')
+                  limits='QEMU 7/7 passed; physical kernel/timer acceptance pending full ztest result')
     return output, fit, report
 
 
