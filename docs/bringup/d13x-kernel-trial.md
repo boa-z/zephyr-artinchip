@@ -365,3 +365,28 @@ C:/aic-z0-kernel-window-v9（干净树），文件 37648 字节，RAM 50688/6553
 使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
 特别保留 KERNEL-SPINPROBE mode=switch 行（本轮不应再饿死）。
 第八轮 hardware_validation=pending。
+
+## 第八轮实板结果：真实切换亦不能解蔽，剩余差异为阻塞/wfi
+
+用户回传日志对应第八轮镜像（37648 字节 payload）。8 项全部跑完，
+无饿死、无 fault：isr_delivery/preemption 复现失败签名，
+spin_switch（对等真实切换）同样 count=0 失败，spin_yield 失败。
+原始日志见 artifacts/z0-kernel-r8-board-result/board-log.txt，摘要见
+同目录 user-result.json。恢复待确认。
+
+分析结论：真实 ecall 上下文切换不能解蔽定时器 ISR 投递。结合前轮，
+自旋/yield-自旋/切换-自旋全部零到期，而阻塞等待照常唤醒——剩余差异
+为线程阻塞（含调度器解调度、idle 与 wfi）对线程运行。用例清单 8 项。
+
+## 第九轮诊断：IP=1 前提下的单次 wfi 判决实验（待实板）
+
+- 新增 `test_timer_spin_wfi_single`：挂 5 ms k_timer，先不 wfi 地轮询
+  CLIC pending 字节（200 ms 周期预算）；仅在观察到 IP=1 且 MIE 置位
+  后打印 pre 行并执行单次 wfi，返回后采样 count/比较器/mcause 再打印
+  post 行。三种结局均有判读：
+  带 ISR 进展唤醒＝等待态足够；挂死（日志止于 ip=1 的 pre 行，需看门狗
+  恢复）＝wfi 在 pending+使能下仍不醒；200 ms 内 IP 不起＝干净 FAIL，
+  不执行 wfi、无挂死风险。
+- post 行先于断言打印；断言为 wfi 后 ISR 进展（QEMU 成立）。
+  非 D13x 下跳过 IP 轮询（QEMU 以计数为准）。
+- 用例清单增至 9 项（evidence.py 与主机测试同步）。

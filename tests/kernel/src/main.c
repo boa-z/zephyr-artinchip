@@ -41,6 +41,22 @@ struct poll_snapshot {
  * mip/mie bits is a hardware obligation, not a driver assumption.
  * Sampled before k_timer_stop(), which may reprogram the comparator.
  */
+/* CLIC pending byte for the machine timer IRQ (layout as in tick_regs_get).
+ * D13x only; zero elsewhere.
+ */
+static uint8_t clic_ip_now(void)
+{
+#if defined(CONFIG_SOC_SERIES_D13X)
+	uint32_t timer_irq = DT_IRQN(DT_INST(0, riscv_machine_timer));
+	uintptr_t clic_ip = DT_REG_ADDR(DT_INST(0, riscv_clic)) + 0x1000U +
+			    (uintptr_t)timer_irq * 4U;
+
+	return sys_read8(clic_ip);
+#else
+	return 0;
+#endif
+}
+
 struct tick_regs {
 	uint64_t mtime;
 	uint64_t mtimecmp;
@@ -366,6 +382,73 @@ ZTEST(artinchip_kernel, test_timer_spin_switch)
 	       (long long)(after.ticks - before.ticks), after.cycles - before.cycles);
 	zassert_ok(k_thread_join(&switch_thread, K_SECONDS(1)));
 	zassert_true(count >= 20, "no timer-ISR expiry observed across switches");
+}
+
+ZTEST(artinchip_kernel, test_timer_spin_wfi_single)
+{
+	/* Decisive probe for wait-state coupling: arm the 5 ms k_timer,
+	 * poll the CLIC pending byte WITHOUT wfi (bounded 200 ms), then
+	 * execute ONE wfi only after observing IP=1 with MIE set.
+	 * - wfi wakes with ISR progress (count/cmp move): wait state suffices.
+	 * - wfi never returns: hang to watchdog; the log ends at the pre-wfi
+	 *   line with ip=1, itself proving wfi did not wake on pending+enabled.
+	 * - IP never sets in budget: clean FAIL, no wfi executed, no hang.
+	 * post-wfi line is printed before asserting, so every outcome keeps
+	 * its data. The post-wfi assert (ISR progress) holds on QEMU.
+	 */
+	struct poll_snapshot before = poll_snapshot_get();
+	uint32_t start = before.cycles;
+	uint32_t ip_budget = k_ms_to_cyc_ceil32(200);
+	bool ip_seen = false;
+#if !defined(CONFIG_SOC_SERIES_D13X)
+	/* No CLIC sampling off-target: QEMU delivery is counted, not peeked. */
+	ip_seen = true;
+#endif
+
+	atomic_clear(&isr_probe_count);
+	k_timer_start(&isr_probe_timer, K_MSEC(5), K_MSEC(5));
+	for (uint32_t spins = 0; spins < 10000000U; spins++) {
+		if (atomic_get(&isr_probe_count) >= 20) {
+			ip_seen = true;
+			break;
+		}
+#if defined(CONFIG_SOC_SERIES_D13X)
+		if (clic_ip_now() != 0U) {
+			ip_seen = true;
+			break;
+		}
+#endif
+		if ((uint32_t)(k_cycle_get_32() - start) >= ip_budget) {
+			break;
+		}
+		compiler_barrier();
+	}
+	if (!ip_seen) {
+		k_timer_stop(&isr_probe_timer);
+		printk("KERNEL-WFIPROBE schema=1 stage=noip ip=0 priority=%d\n",
+		       k_thread_priority_get(k_current_get()));
+		zassert_true(ip_seen, "CLIC pending never set; wfi not attempted");
+		return;
+	}
+	struct tick_regs pre_wfi = tick_regs_get();
+
+	printk("KERNEL-WFIPROBE schema=1 stage=pre ip=1 priority=%d\n",
+	       k_thread_priority_get(k_current_get()));
+	__asm__ volatile("wfi" ::: "memory");
+	/* wfi returned: sample before stopping (stop may reprogram). */
+	struct tick_regs post_wfi = tick_regs_get();
+
+	k_timer_stop(&isr_probe_timer);
+	struct poll_snapshot after = poll_snapshot_get();
+	unsigned int count = (unsigned int)atomic_get(&isr_probe_count);
+
+	printk("KERNEL-WFIPROBE schema=1 stage=post woke=1 count=%u "
+	       "cmp_changed=%d exit_mcause=%08lx priority=%d tick_delta=%lld "
+	       "cycle_delta=%u\n", count,
+	       (int)(post_wfi.mtimecmp != pre_wfi.mtimecmp),
+	       post_wfi.mcause, k_thread_priority_get(k_current_get()),
+	       (long long)(after.ticks - before.ticks), after.cycles - before.cycles);
+	zassert_true(count >= 1, "wfi returned without timer-ISR progress");
 }
 
 ZTEST(artinchip_kernel, test_timer_preemption)

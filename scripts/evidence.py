@@ -24,8 +24,9 @@ CASE_SUFFIXES = {
     "artinchip.bringup.no_assert": ("",),
     "artinchip.kernel": tuple(".artinchip_kernel." + name for name in
                               ("owned_memory", "timer_isr_delivery", "timer_preemption",
-                               "timer_spin_switch", "timer_spin_yield", "timeout",
-                               "thread_semaphore", "module")),
+                               "timer_spin_switch", "timer_spin_wfi_single",
+                               "timer_spin_yield", "timeout", "thread_semaphore",
+                               "module")),
     "artinchip.fpu": (".artinchip_fpu.context_registers",),
     **{"artinchip.clic." + mode: tuple(".clic_mmio." + name for name in
                                       ("irq_edges_enable_pending_shv", "invalid_width",
