@@ -354,3 +354,14 @@ user-result.json。板子需要复位并烧回原版镜像。
 - switch_spinner 每 1000 次循环 k_yield：两线程自愿交替，不依赖
   定时器 tick；测试线程的周期预算依然兜底。用例清单保持 8 项不变。
 - 判读不变：switch 通过则指向切换路径，不通过则剩余差异为阻塞/wfi。
+
+## 第八轮交付（待实板）
+
+产物：artifacts/z0-kernel-r8-delivery/D50T_Z0_kernel_r8_diag.img。
+SHA-256: dfdbc68c502098b9e8fa0e16a780d34d9335b3ea930f902a1451d7a7c444a87f。
+QEMU 8/8（C:/tmp/aic-qemu-r8）；D13x 目标构建
+C:/aic-z0-kernel-window-v9（干净树），文件 37648 字节，RAM 50688/65536；
+打包器按第八轮 ELF/BIN 固定哈希验证（提交 39b9552），篡改负检查拒绝。
+使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
+特别保留 KERNEL-SPINPROBE mode=switch 行（本轮不应再饿死）。
+第八轮 hardware_validation=pending。
