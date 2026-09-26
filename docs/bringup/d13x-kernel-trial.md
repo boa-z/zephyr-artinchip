@@ -485,3 +485,16 @@ CAN/display/FPU；每轮真机保留可恢复镜像与完整串口日志。
 save/restore/MRET 路径；若 MIL=0，下一轮才把 CLICCFG 从当前
 nlbits=0 切换到 ArtInChip SDK 的 nlbits=intctlbits=3，保持 SHV=0
 不变；两条均排除后，才设计 MTVT 加 SHV=1 的 E907 硬件向量适配器。
+
+## 第十一轮交付（待实板）
+
+产物：artifacts/z0-kernel-r11-delivery/D50T_Z0_kernel_r11_diag.img。
+SHA-256: 08f40e0fc1ff0f1d68ed1b38a036da8ae7bcc5dfcfd66b0f7bc96f07daac7667。
+QEMU 9/9（C:/tmp/aic-qemu-r11c）；D13x 目标构建
+C:/aic-z0-kernel-window-v13（干净树，零 warning），文件 39288 字节，
+RAM 52352/65536；打包器按第十一轮 ELF/BIN 固定哈希验证（提交 64ed098），
+篡改负检查拒绝。使用同样的手动烧录、COM11/115200、30 秒观察和恢复
+流程；回传完整日志，特别保留 KERNEL-CSR 行的 before/after_mil/mpil
+与 KERNEL-TICKDBG 行的 pre_/exit_mintstatus/mil/mpil。
+若 preflight 前即停机（0x346 fault），保存日志、复位烧回，该结局
+本身即 MIL 通路不存在的答案。第十一轮 hardware_validation=pending。
