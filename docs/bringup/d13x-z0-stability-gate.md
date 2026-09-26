@@ -350,20 +350,85 @@ MINTSTATUS=00000000。FPU 镜像的 12.3 s 采样更密，两者互补。
 
 范围声明：这是单轮通过。项 2 仍要求连续多轮，项 1 本镜像计 1 次冷启动。
 
+### 2026-09-26 stress gate 镜像：Gate 项 4 PASS（600 s 持续压力首次）
+
+`D50T_Z0_stress_gate.img`（`tests/z0_stress`，600 s profile）由用户烧入并跑完整
+窗口。操作者回传的是**日志尾部片段**（最后两条 `Z0-STRESS-HB` +
+`Z0-STRESS-SUMMARY` + 两行结论），已原样存
+`artifacts/z0-gate-stress-board-result/board-log.txt`，摘要同目录
+`user-result.json`。
+
+收尾计数：`runtime_ms=601789`、`timer_isr=120360`、`fpu_a=fpu_b=90300`、
+`voluntary=180602`、`timeout_wakeups=28560`、`mil_samples=209162`、
+`mil_violations=0`、`mil_worst=00`、`fpu_failures=0`，结论 `result=PASS` +
+`Z0-STRESS PASS` + `PROJECT EXECUTION SUCCESSFUL`。
+
+计数器彼此自洽，不是只看一个 PASS 字：
+
+- `mil_samples - voluntary - timeout_wakeups` 在两条心跳行都是 1、收尾为 0。
+  sleeper 每次超时唤醒也采一次 MIL（`tests/z0_stress/src/main.c:215`），peer 循环
+  每次先采样再计自愿切换，所以残差只可能是 1 次在途迭代——没有回绕，也没有撕裂读。
+- `voluntary - 2×fpu_a = 2`：两个 peer 共用自愿计数器，残差同样是在途那一对。
+- 两条心跳之间 `timer_isr +1003`、`elapsed_ms +5015`，而 1003 × 5 ms = 5015 ms
+  精确对齐。
+- `mtime_delta` 差值恰为 4000 ticks/ms，且两行相对 `uptime × 4 MHz` 的偏移同为
+  3260 ticks（0.815 ms）——两个独立时源在整个窗口内率一致，只差一个亚毫秒常数偏移。
+- `timeout_wakeups` 28560 次 / 601.789 s = 每 21.07 ms 一次，对 20 ms 睡眠即约
+  1.07 ms 稳定唤醒开销，无累积漂移。
+
+**MIL=00 是有判别力的测量**：同一个 CSR 0x346 顶字节读法在第十一轮实板的每个
+失败点读到的是 `ff`（`d13x-kernel-trial.md:528`），第十二轮修复之后才恒为 `00`。
+所以本项不是「位域读错导致恒零」的假绿。
+
+四条注入分支都不可能产生这段日志：`INJECT_MIL` 预先置违例数（必以
+`reason=mil_violation` 收尾）、`INJECT_TIMER` 使 `timer_isr` 停滞、`INJECT_PEER`
+使 `fpu_b` 恒 0、`INJECT_FPU` 让自愿校验立刻失配；打包器又拒绝任何启用注入或
+非 600 s 的构建被打成硬件镜像。据此判据 1（`inject=none`）的**实质内容**成立。
+
+判据的**字面**缺口须同时记下：回传片段没有首行 `Z0-STRESS begin`，也没有中间约
+120 条心跳，因此「全程无 >15 s 串口空窗」这一条取的是操作者陈述，本仓库没有可
+独立复核的全文日志；片段里也没有 tinySPL banner，所以这次运行的板上 `spl read`
+字节数与 build id 无法像 kernel/fpu 两条那样再核一次，镜像身份按「操作者指明的
+文件 + 只有该应用能产生的计数集合」关联，**不是**独立哈希证明。要补齐请回传完整
+`.txt`（含 begin 行与全部心跳），本文不改写成「已归档完整日志」。
+
+范围声明：一次 601.789 s 连续窗口关闭 Gate 项 4，不构成重复性声明；
+`loadable_image` 仍为 false。
+
+### 2026-09-26 操作者口径证据：Gate 项 1 与项 2 收口
+
+以下为 **owner-observed hardware evidence**（操作者报告），与上文逐次留档的日志
+不同，须按这个口径引用：
+
+- 同一候选镜像已完成 **≥10 次独立冷启动**，均正常完成，无挂起 / fault / 循环重启。
+- 心跳版 kernel 镜像已完成 **≥5 轮连续 9/9**，每轮 `KERNEL-MILHB violations=0`。
+- stress 跑完已按 runbook 第 5 步烧回 `RESTORE_original_product.img`，并确认原版
+  正常启动 → 恢复路径本轮**已验证**。
+
+这些次数的**逐次串口日志与 Reset flag 没有回流**到本仓库（此处只有 FPU 候选 2 次、
+kernel 候选 1 次、stress 候选 1 次的日志），项 1 要求的「每次记录 Reset flag 与
+墙钟耗时」因此是一处已知留档缺口。按操作者指示以 owner-observed 口径记为通过，
+但**不得**在任何位置写成 CI / 自动化证据，也**不得**写成「本仓库日志已覆盖 10 次
+启动」。遗留观察项照记：FPU 第二次启动的 Reset flag `0x101`（tinySPL 报
+`Unknown reset reason: 2 - 1`）分类仍未定。
+
 ### Gate 进度
 
 | 项 | 要求 | 状态 |
 | --- | --- | --- |
-| 1 重复冷启动 | 同一候选 ≥10 次独立冷启动全通过 | 进行中（FPU 候选 2 次、kernel 候选 1 次，均通过） |
-| 2 kernel 9/9 多轮 | 心跳版 kernel 镜像板上连续多轮 9/9（建议 ≥5） | 进行中：第 1 轮 **PASS**（9/9，2.1 M 心跳样本 0 违例） |
-| 3 FPU 实板上下文 | 1/1 + ≥5000 抢占/线程 + 200 自愿 | **PASS**（两次启动均通过） |
-| 4 ≥10 分钟 kernel+FPU stress | 组合连续 ≥10 min，MIL 全程 0 | NOT_RUN。600 s 专用镜像 `D50T_Z0_stress_gate.img` 已构建/打包/固定并交付，等待实板日志；kernel 单轮 0.529 s、FPU 单轮 12.3 s 不构成该项证据 |
-| MIL 线程态保持 0 | 全部心跳 `violations=0` | 两镜像已观测合计 2,123,899 个样本全部为 0；stress 镜像尚未采样 |
+| 1 重复冷启动 | 同一候选 ≥10 次独立冷启动全通过 | **PASS（owner-observed）**：操作者报告同一候选 ≥10 次独立冷启动全部正常完成；本仓库逐次留档的启动为 4 次（FPU 2、kernel 1、stress 1），逐次 Reset flag 未回流 |
+| 2 kernel 9/9 多轮 | 心跳版 kernel 镜像板上连续多轮 9/9（建议 ≥5） | **PASS（owner-observed）**：操作者报告 ≥5 轮连续 9/9、每轮 `violations=0`；本仓库留档第 1 轮（9/9，2,101,657 个心跳样本 0 违例） |
+| 3 FPU 实板上下文 | 1/1 + ≥5000 抢占/线程 + 200 自愿 | **PASS**（两次启动均通过，日志留档） |
+| 4 ≥10 分钟 kernel+FPU stress | 组合连续 ≥10 min，MIL 全程 0 | **PASS**：`D50T_Z0_stress_gate.img` 实板 601789 ms 连续窗口，`timer_isr=120360`、`fpu_a=fpu_b=90300`、`voluntary=180602`、`timeout_wakeups=28560`、`mil_samples=209162`、`mil_violations=0`、`mil_worst=00`、`fpu_failures=0`、`result=PASS` |
+| MIL 线程态保持 0 | 全部心跳 `violations=0` | 三镜像留档样本合计 **2,333,061**（kernel 2,101,657 + FPU 22,242 + stress 209,162），违例 **0** |
 
-> **证据口径**：上表只统计**本仓库里留有日志**的实板结果——FPU 候选 2 次启动、
-> kernel 候选 1 次启动。若口头报告过更多次冷启动或 kernel 多轮，其日志未随
-> 本轮交付回流到 `artifacts/z0-gate-*-board-result/`，因此不计入进度，也不写
-> 成「已完成」。要关闭项 1/2，需要每次的原始日志（或至少可核对的次数记录）。
+> **证据口径**：项 3 与项 4 的依据是本仓库留有日志的实板结果（FPU 候选 2 次启动、
+> kernel 候选 1 次启动、stress 候选 1 次 601.789 s 窗口；`artifacts/` 被
+> gitignore，日志随交付目录而非 Git 树走）。项 1 与项 2 的收口次数是
+> **操作者报告**（owner-observed hardware evidence），逐次串口日志与 Reset flag
+> 未回流，因此不得引用成「日志已覆盖 10 次启动 / 5 轮 9/9」，也不得与自动化 CI
+> 证据混写。两类口径都**不是** CI 产物：CI 没有板子，Gate 项 1–4 与 Actions 运行
+> 结果彼此独立。
 
 ## 软件 Gate 的 CI 主机（本轮迁移）
 
@@ -466,6 +531,44 @@ Z0 关闭**不**断言（这些必须留在 Z1 或后续里程碑，不得被稳
 - 「产品可发布」——`loadable_image` 仍为 false，交付物是手工实验用镜像。
 - upstream 就绪度——CLIC 三项 upstream candidate 属 Z1，且需人类 DCO/评审。
 
+## Z0 关闭记录（2026-09-26）
+
+**状态：Z0 CLOSED —— hardware validated within Z0 scope。**
+
+关闭条件逐项对上：项 1 与项 2 以 owner-observed 口径收口（≥10 次同候选独立冷
+启动、≥5 轮连续 kernel 9/9），项 3 与项 4 以本仓库留档日志收口（FPU 两次启动、
+601.789 s 单次连续 stress 窗口），三镜像留档合计 **2,333,061** 个线程态 MIL 样本
+**0** 违例、`fpu_failures=0`，且烧回 `RESTORE_original_product.img` 后原版确认
+正常启动。按本文「通过判据与收尾」的约定，**不再增加诊断轮次**。
+
+冻结范围随本关闭一起生效：`c0b15e9` 引入的 D13x mcause-only 上下文修复（MPIL 取
+bits[23:16]）为最终形态，Z0 之内不再改 CLIC、timer frequency、mtimecmp 算法、
+WFI 行为、`CLICCFG.nlbits`、SHV 与优先级；后续如需触碰，属于 Z1 的重构议题并
+需重新实板验证。
+
+软件基线与证据标识：
+
+| 字段 | 值 |
+| --- | --- |
+| 本仓库 HEAD（软件基线） | `fee21ae9790ca51ca49282a8a1eaee083b976ffc` |
+| Z0 kernel baseline | `c0b15e9` + `4442a91` |
+| Zephyr 固定源 | `839728050444f90d06870b5fc9bbbda106d91459`（dirty：补丁改的三个 CLIC 文件） |
+| Linux 必需软件 Gate | run **36235471896**（全 18 步 success），环境记录见下一节 run 36234634318 |
+| kernel gate 镜像 | `D50T_Z0_kernel_gate.img` `bd76a8bb…`（BIN `14549f37…`，40328 B） |
+| fpu gate 镜像 | `D50T_Z0_fpu_gate.img` `1f322dc1…`（BIN `a144fbb3…`，34620 B） |
+| stress gate 镜像 | `D50T_Z0_stress_gate.img` `eb06085f…`（BIN `c0d7a411…`，30816 B，RAM 44368/65536） |
+| baseline marker | 附注标签 `d13x-z0-validated`，含以上 HEAD/Zephyr/CI/镜像 SHA 与硬件摘要 |
+
+**未做的事**：没有创建 GitHub Release，也没有发布任何制品——按仓库规则
+release 需人工批准，本轮只落 tag 与本文记录。三项 `verification.json` 里的
+`loadable_image=false` 与 `hardware_validation` 字段一字未改（那三个文件已被
+`SHA256SUMS.txt` 钉住，改动会破坏交付一致性）；实板结论只写进本文与
+`d13x-handoff.yml` 的 observed 条目。
+
+关闭 Z0 之后进入 Z1：把实验性 D13x support 重构为正式 Zephyr platform
+fundamentals，并独立整理 CLIC 三项 upstream candidate。CAN / display / GE / MPP
+在 Z1 完成前不开始。
+
 ## 首次全绿的 Ubuntu run（任务书 §21 环境记录）
 
 Run **36234634318**（workflow `P0 and D13x software gates`，event `push`，
@@ -513,5 +616,8 @@ candidate 也一样，43808 B vs 43792 B，差值同为 16 B。本轮**未定位
 runner 上没有 known-good 参考图。要在 CI 断言跨主机字节一致，需要先固定
 宿主工具版本并解释这 16 B，属 Z1 事项。
 
-这次全绿改变的是**软件 Gate 的主机状态**，不改变实板口径：Gate 项 1–4
-仍只看操作者回传的串口日志，stress 的实板结果仍是 pending。
+这次全绿改变的是**软件 Gate 的主机状态**，不改变实板口径：Gate 项 1–4 仍只看
+操作者回传的串口日志。交付头 `fee21ae9790ca51ca49282a8a1eaee083b976ffc`（在
+`163269d` 之后只含文档改动）自身的 run **36235471896** 同样全绿，从 `Set up job`
+到 `Complete job` 共 18 步全部 `success`；上表的环境数据取自首次全绿的那次
+（36234634318），两者主机与工具版本相同。实板侧其后已收口，见「Z0 关闭记录」。
