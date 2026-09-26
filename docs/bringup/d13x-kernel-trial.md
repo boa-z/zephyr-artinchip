@@ -574,3 +574,25 @@ switch.S、thread.c，以及第十一轮交付镜像自身的 ELF。
    触发在软件可见状态之外。按决策树：MIL 非零分支的本轮分析到此
    为止，不改代码、不出新镜像；触发源需结合 E907 中断电平跟踪的
    硬件定义继续确认。
+
+## 第十二轮交付（待实板）
+
+产物：artifacts/z0-kernel-r12-delivery/D50T_Z0_kernel_r12_diag.img。
+SHA-256: ad0c913a4ebea65ee37f50405a0b6a60d849cce6522efcf77802e60adda675c8。
+QEMU 全量回归 7/7 场景、27/27 用例（C:/tmp/aic-qemu-full-r12，
+含 bringup/bringup.no_assert/kernel/fpu/clic 三变体）；D13x 三套件
+build-only 门禁 3/3 通过无警告（C:/tmp/aic-d13x-r12）。D13x 目标构建
+C:/aic-z0-kernel-window-v14（干净树），文件 39352 字节，
+RAM 52416/65536；V14 ELF 反汇编抽查确认 save/restore 序列和
+arch 槽回写偏移（-20）。打包器按第十二轮 ELF/BIN 固定哈希验证
+（提交 49c4f5c），篡改负检查拒绝。
+
+首要验收：KERNEL-CSR 的 after_mil=00（preflight after MIL=0）且
+KERNEL-TICKDBG 的 pre_mil=00（timer-test pre MIL=0）；随后目标
+timer_isr_delivery / timer_preemption / spin_switch / spin_wfi /
+spin_yield 全部 PASS（9/9）。若仍失败：不改 nlbits，改为在 SoC
+save/restore 路径写内存 trace ring buffer 定位具体 frame/mcause。
+
+冻结确认：timer frequency、mtimecmp 算法、等待预算、线程优先级、
+WFI 行为、CLICCFG.nlbits=0、SHV、定时器配置、用例清单全部未变。
+第十二轮 hardware_validation=pending。
