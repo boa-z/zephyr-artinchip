@@ -159,3 +159,34 @@ SHA-256: ec5b1b77cb436af41cd3ba1378cbd543c96b4f74409881993ff4f41165e39687。
 使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
 特别保留 KERNEL-ISRPROBE 行。判读规则见包内 history-and-details.md。
 第三轮 hardware_validation=pending，第二轮明确为 FAIL。
+
+## 第三轮实板结果：失败，分支 A 落定
+
+用户回传日志对应 35840 字节 payload（与 zephyr.bin 一致），Zephyr build
+839728050444，本轮 Reset flag 为 0x501 Watchdog-Reset Command-Reboot
+（命令重启，无崩溃指征）。镜像身份由操作上下文关联；串口未回报镜像
+SHA-256。原始日志见 artifacts/z0-kernel-isr-board-result/board-log.txt。
+
+- Preflight 与四项阻塞测试通过，耗时与前两轮一致（0.001/0.011/0.021/
+  0.026 秒）；mstatus=0x88，preflight mcause 仍终结于 timer（0x88000007）。
+- test_timer_isr_delivery 在 main.c:186 失败：
+  `reason=cycles count=0 tick_delta=1000 cycle_delta=4000005`。
+  仅挂载 5 ms k_timer 的 1 秒自旋中，ISR 上下文到期计数保持为 0。
+- test_timer_preemption 复现失败，签名与第二轮完全一致（phase=1，
+  整预算 cycle_delta=4000000）。
+- 套件 pass=4、fail=2、skip=0，共 6 项，耗时 2.119 秒。
+
+分析结论：分支 A 成立——非让出式自旋期间超时 ISR（到期回调在此时钟
+ISR 上下文执行）一次都未运行，而阻塞等待者仍能被按时唤醒。由此排除
+“投递后线程唤醒/调度”分支和全局 MIE 问题；未继续分离的是比较器
+“已挂载但未投递” vs “从未断言” vs “内核根本未挂载”。
+
+## 第四轮诊断：比较器与 pending 采样（待实板）
+
+在 test_timer_isr_delivery 内新增 KERNEL-TICKDBG 行，报告原始值，
+不做硬件语义断言：k_timer_start 后的 armed_mtime/armed_cmp，
+自旋退出时（k_timer_stop 之前）的 exit_mtime/exit_cmp/exit_mip/
+exit_mie/exit_irqen。QEMU 下该结构填充为零，不影响 6/6 判定。
+判读：exit_mtime>=exit_cmp 且 count=0 为“已挂载但未投递/未断言”；
+exit_mtime<exit_cmp 为“内核未挂载”。mip/mie 按标准机时中断位对照，
+CLIC 模式下的最终解释以硬件手册为准。

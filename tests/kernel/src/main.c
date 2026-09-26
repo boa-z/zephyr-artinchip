@@ -33,6 +33,47 @@ struct poll_snapshot {
 	uint32_t mcause;
 };
 
+/* Raw timer/pending sampling for the D13x board trial. Values are
+ * reported, not interpreted here: in CLIC mode the meaning of
+ * mip/mie bits is a hardware obligation, not a driver assumption.
+ * Sampled before k_timer_stop(), which may reprogram the comparator.
+ */
+struct tick_regs {
+	uint64_t mtime;
+	uint64_t mtimecmp;
+	unsigned long mip;
+	unsigned long mie;
+	int irq_enabled;
+};
+
+static struct tick_regs tick_regs_get(void)
+{
+	struct tick_regs regs = {0, 0, 0, 0, 0};
+
+#if defined(CONFIG_SOC_SERIES_D13X)
+	volatile uint32_t *mtime =
+		(uint32_t *)DT_REG_ADDR_BY_NAME(DT_INST(0, riscv_machine_timer), mtime);
+	volatile uint32_t *mtimecmp = (uint32_t *)(DT_REG_ADDR_BY_NAME(
+		DT_INST(0, riscv_machine_timer), mtimecmp) + arch_proc_id() * 8);
+	uint32_t hi, lo;
+
+	do {
+		hi = mtime[1];
+		lo = mtime[0];
+	} while (mtime[1] != hi);
+	regs.mtime = ((uint64_t)hi << 32) | lo;
+	do {
+		hi = mtimecmp[1];
+		lo = mtimecmp[0];
+	} while (mtimecmp[1] != hi);
+	regs.mtimecmp = ((uint64_t)hi << 32) | lo;
+	regs.mip = csr_read(mip);
+	regs.mie = csr_read(mie);
+	regs.irq_enabled = irq_is_enabled(DT_IRQN(DT_INST(0, riscv_machine_timer)));
+#endif
+	return regs;
+}
+
 static struct poll_snapshot poll_snapshot_get(void)
 {
 	struct poll_snapshot result = {0};
@@ -163,6 +204,7 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 
 	atomic_clear(&isr_probe_count);
 	k_timer_start(&isr_probe_timer, K_MSEC(5), K_MSEC(5));
+	struct tick_regs armed = tick_regs_get();
 	for (uint32_t spins = 0; spins < 10000000U; spins++) {
 		if (atomic_get(&isr_probe_count) >= 20) {
 			reason = "isr";
@@ -174,6 +216,8 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 		}
 		compiler_barrier();
 	}
+	/* Sample before stopping: k_timer_stop() may reprogram mtimecmp. */
+	struct tick_regs at_exit = tick_regs_get();
 	k_timer_stop(&isr_probe_timer);
 	/* Capture before printing: UART can change timing. */
 	struct poll_snapshot after = poll_snapshot_get();
@@ -183,6 +227,12 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 	       "tick_delta=%lld cycle_delta=%u\n", reason, count,
 	       k_thread_priority_get(k_current_get()),
 	       (long long)(after.ticks - before.ticks), after.cycles - before.cycles);
+	printk("KERNEL-TICKDBG schema=1 armed_mtime=%llu armed_cmp=%llu "
+	       "exit_mtime=%llu exit_cmp=%llu exit_mip=%08lx exit_mie=%08lx "
+	       "exit_irqen=%d\n",
+	       (unsigned long long)armed.mtime, (unsigned long long)armed.mtimecmp,
+	       (unsigned long long)at_exit.mtime, (unsigned long long)at_exit.mtimecmp,
+	       at_exit.mip, at_exit.mie, at_exit.irq_enabled);
 	zassert_true(count >= 20, "no timer-ISR expiry observed while spinning");
 }
 
