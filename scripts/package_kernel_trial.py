@@ -11,9 +11,9 @@ from image_roundtrip import BASELINE
 from test_image import replace_os, verify_replacement
 from zephyr_fit import encode, verify, reconstruct_binary
 
-ELF_SHA = '0b8b2b6f6ca032c181ab8ad23e3071462733e40285189f7bc5d9948c4f186026'
-BIN_SHA = 'bbfb870cf222f240224e782e416c97944b9b3b622d6526b49ca61c3bb3232dd3'
-IMAGE_NAME = 'D50T_Z0_kernel_r9_diag.img'
+ELF_SHA = '600a5e0d27dd469dc72e7745e452708fba6843ead78b18b7854e1bc4c5cc871b'
+BIN_SHA = '046f8770015b39ca6263c4addac2c476ad1b77bbaf3b06c76fe6b792e2b6bd9d'
+IMAGE_NAME = 'D50T_Z0_kernel_r10_diag.img'
 
 
 def package(reference, elf_data, raw):
