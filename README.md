@@ -2,7 +2,11 @@
 
 Community-maintained ArtInChip support as an out-of-tree Zephyr module and west
 manifest repository. Scope: P0 infrastructure and a D133ECS SRAM-only Z0 software
-candidate. **HARDWARE_PENDING: no physical board test and no loadable container.**
+candidate. **Z0 OPEN: three gate images have run on the board (kernel 9/9 once,
+FPU context matrix twice, thread-state MIL held at 0), but the 600 s sustained
+stress, the >=10 cold-boot repeats and the multi-round kernel repeat are still
+unlogged, and no image here is a shippable loadable container
+(`loadable_image: false`).**
 
 ## Reproduce on Windows
 
@@ -39,8 +43,22 @@ code and SDK runtime libraries, so imported module paths are explicitly blocked.
 Revisit that decision when adding an actual external-module consumer. SDK/product
 source is not a build dependency. No global Git or environment changes are needed.
 
-The installer also has a Linux x86_64 path, but only native Windows execution is
-validated in this delivery. The Windows package lock is not a Linux lock.
+The installer supports Windows and Linux x86_64. **Linux is now the required CI
+host**: `.github/workflows/ci.yml` runs on `ubuntu-26.04` with
+`requirements-linux.lock`, which mirrors the Windows lock minus the Windows-only
+curses wheel. The runner is not `ubuntu-24.04`: that release's apt emulator is
+QEMU 8.2.2, which has no `rv32i` CPU model, and the pinned Zephyr revision
+composes `-cpu` from devicetree, so all 28 QEMU cases died as an empty
+`unexpected eof`. Ubuntu 26.04 ships QEMU 10.2.1, in a separate
+`qemu-system-riscv` package (24.04 kept RISC-V inside `qemu-system-misc`), the
+same major version as the locally validating emulator, and the workflow now
+asserts the binary and the `rv32i` model before anything is built. Run
+36234634318 at `163269d` is the first green Ubuntu run: 8 of 8 scenarios,
+28 of 28 cases, no warnings, D13x build-only and the evidence round trip all
+passing. Windows
+remains the locally exercised developer host and is kept as a manual,
+non-blocking compatibility run
+(`.github/workflows/ci-windows.yml`, `workflow_dispatch` only).
 
 ## Verification gates
 
@@ -49,14 +67,16 @@ python scripts/lint.py
 python scripts/check_provenance.py
 python -m unittest discover -s tests/host -v
 python scripts/apply_patches.py --check
-west twister -p qemu_riscv32 -T samples/bringup -T tests/kernel -T tests/fpu -T tests/clic --board-root boards --outdir C:/tmp/aic-qemu --inline-logs -j4
-west twister -p d50t_2_lite/d133ecs -T samples/bringup -T tests/kernel -T tests/fpu --board-root boards --build-only --outdir C:/tmp/aic-d13x --inline-logs -j4
+west twister -p qemu_riscv32 -T samples/bringup -T tests/kernel -T tests/fpu -T tests/clic -T tests/z0_stress --board-root boards --outdir C:/tmp/aic-qemu --inline-logs -j4
+west twister -p d50t_2_lite/d133ecs -T samples/bringup -T tests/kernel -T tests/fpu -T tests/z0_stress --board-root boards --build-only --outdir C:/tmp/aic-d13x --inline-logs -j4
+python scripts/window_fit.py C:/tmp/aic-stress-window/zephyr --expect CONFIG_AIC_Z0_STRESS_DURATION_SEC=600
 ```
 
 Use new output directories to preserve prior evidence. A short absolute Windows
 path avoids GNU ar MAX_PATH failures with Twister's nested build paths. The roots
 are passed explicitly; module declarations alone do not run tests. QEMU must
-execute all 7 configurations / 23 cases. D13x is 3 build-only configurations and
+execute all 8 scenarios / 28 cases (bringup x2, kernel 9, fpu, clic x3, the
+`tests/z0_stress` 3 s coverage profile). D13x is 4 build-only configurations and
 zero runtime passes. JSON, xUnit, handler and build logs are retained by Twister.
 `.github/workflows/ci.yml` enforces these downstream gates with no failure bypass;
 the prior run 36092052502 failed during cross-drive artifact upload. Follow-up
@@ -64,7 +84,10 @@ run 36096131063 passed failure-evidence upload/download verification but failed
 a host-test path comparison. Run 36099116552 at a607310 then passed the complete
 workflow; run 36099414248 at 480e95e also completed successfully. Both downloaded
 archives passed independent verification including all three candidate .config
-files and candidate-to-build-receipt consistency. See docs/validation-r1-report.md for follow-up
+files and candidate-to-build-receipt consistency. Those were Windows-host runs;
+the required gate has since moved to `ubuntu-26.04`, where run 36234634318 at
+`163269d` is the first green run; docs/bringup/d13x-z0-stability-gate.md records
+its environment data. See docs/validation-r1-report.md for follow-up
 acceptance evidence and docs/bringup/loader-audit.md for the remaining hardware gates.
 
 Interactive sample: `west build -b qemu_riscv32 samples/bringup -d build-qemu`,
@@ -83,7 +106,12 @@ python scripts/package_candidate.py C:/tmp/aic-candidate-bringup artifacts/candi
 ```
 
 Delivery builds require a clean committed module and a new build directory. Repeat
-the controlled build/collection for kernel and fpu with distinct directories.
+the controlled build/collection for kernel, fpu and stress with distinct
+directories. `tests/z0_stress` is the standalone 600 s sustained-stress verifier
+for the Z0 stability gate (timer preemption, peer FPU preemption, voluntary
+switches, blocking wakeup, thread-context-only MIL sampling); it does not link the
+kernel or FPU ztest suites. See docs/bringup/d13x-z0-stability-gate.md for the
+gate, its packaged candidates and its failure-path probes.
 See docs/build-receipts.md for source binding, negative probes and evidence ZIPs.
 Use scripts/audit_loader.py for read-only product-SPL identity/static-range checks;
 see docs/bringup/loader-audit.md for its nonzero BLOCKED result and scope limits.

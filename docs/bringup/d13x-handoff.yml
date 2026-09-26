@@ -3,6 +3,10 @@ record_date: '2026-09-26'
 gate: Z0.H0
 status: BLOCKED
 hardware_validation: pending
+hardware_validation_detail: FPU context matrix closed on physical hardware (2/2 boots,
+  gate item 3); kernel 9/9 observed once with thread-state MIL held at 0; the 600 s sustained
+  stress candidate, the >=10 cold-boot repeats and the >=5-round kernel repeat still have no
+  returned log, so Z0 stays open and this field stays pending.
 loadable_image: false
 upstream_ready: 'no'
 items:
@@ -425,6 +429,76 @@ items:
     - path: docs/bringup/d13x-recovery-plan.md
     limits: No executable launched or board accessed. Help-string presence is not validation of staging,
       execution or recovery. Recovery remains unverified.
+  z0_kernel_gate_20260926:
+    classification: observed
+    observer: user-flashed image and user-returned serial log; not agent-operated hardware
+    status: PARTIAL
+    value:
+      image: D50T_Z0_kernel_gate.img
+      image_sha256: bd76a8bb7eafd22fda4d2567c7c9417994af5efc2785318ecc9d90196f02597f
+      elf_sha256: 1ab0896753d332e0d6f1075a98512b1b068a161e1bb31e564d1b27507a2cbbe2
+      bin_sha256: 14549f37cc4df97ed54c1281c0125f4cb60e904fbf00ca670ff4839488a7ebe3
+      on_board_payload_bytes: 40328
+      zephyr_build: '839728050444'
+      result: SUITE PASS pass=9 fail=0 skip=0
+      wall_seconds: 0.529
+      mil_heartbeat_samples: 2101657
+      mil_violations: 0
+      reset_flag: '0x501'
+      boots_observed: 1
+    evidence:
+    - path: docs/bringup/d13x-z0-stability-gate.md
+    limits: Single round of the 9/9 suite inside the experimental 0x40000000/64 KiB
+      window with the 144-slot diagnostic profile. Image identity on board is size
+      plus operator context, because the serial log carries no SHA-256. Not the >=5-round
+      repeat the stability gate asks for, and no default-SRAM, timer-accuracy or
+      long-run claim.
+    required_evidence: Serial logs for the remaining gate rounds and cold-boot repeats.
+  z0_fpu_gate_20260926:
+    classification: observed
+    observer: user-flashed image and user-returned serial log; not agent-operated hardware
+    status: PASS
+    value:
+      image: D50T_Z0_fpu_gate.img
+      image_sha256: 1f322dc1cba4e3e187555d18f429da057ce569069d8b38d2a424e9cb99467bc1
+      elf_sha256: 04eba2449e0a0ee75fcc68f0a1ded1858848effb1c04822a6f914cefb0cc20ea
+      bin_sha256: a144fbb3be29610c7ed896b6adf391943755e971d4d2d6f9ede8bcbea05735dd
+      on_board_payload_bytes: 34620
+      result: SUITE PASS pass=1 fail=0 skip=0
+      wall_seconds: 12.306
+      peer_preemption_checks: 5003+5004
+      voluntary_switch_checks: 200
+      mil_samples: 11121
+      mil_violations: 0
+      boots_observed: 2
+      reset_flags: '0x501 Watchdog-Reset/Command-Reboot; 0x101 Unknown reset reason: 2 - 1'
+    evidence:
+    - path: docs/bringup/d13x-z0-stability-gate.md
+    limits: Closes gate item 3 (FPU context on physical hardware) only. Two identical
+      12.3 s runs are not the >=10 minute sustained window, and the second boot's reset
+      reason stays an open cold-boot classification item.
+  z0_stress_gate_20260926:
+    classification: analysis
+    status: NOT_RUN
+    value:
+      application: tests/z0_stress
+      profile: CONFIG_AIC_Z0_STRESS_DURATION_SEC=600
+      image: D50T_Z0_stress_gate.img
+      image_sha256: eb06085f687b7a2d13ff1caac7d29c797c87db7bc0ba3b2f1abfa7d16137dba9
+      elf_sha256: a9d485e1ff8afe90376b2af88c248f6484bccc9943d96ebdb30a0474c9953c8b
+      bin_sha256: c0d7a411a47b6b4fe33442c5b892a4e509bad60ce377e2801b56e1332fe5939d
+      ram_used_bytes: 44368
+      window_bytes: 65536
+      qemu_short_profile: 1/1 passed at 3 s (logic only)
+      negative_probes: 'four QEMU injection builds failed as expected: mil_violation,
+        voluntary_context_mismatch, timer_isr, peer_preemption_missed'
+    evidence:
+    - path: docs/bringup/d13x-z0-stability-gate.md
+    limits: Offline build, packaging and negative-path evidence only. The 600 s hardware
+      result is what gate item 4 needs and has not been produced; a QEMU 3 s run proves
+      nothing about E907 CLIC, FPU sharing or long-run stability.
+    required_evidence: Full 600 s serial log with per-5 s Z0-STRESS-HB lines, zero stalls,
+      mil_violations=0, fpu_failures=0 and Z0-STRESS PASS, plus post-run RESTORE confirmation.
 local_observation:
   classification: observed
   value: The earlier out/firmware/bootloader path is not the active output layout. Product images and
