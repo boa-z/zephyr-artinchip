@@ -57,15 +57,15 @@ struct tick_regs {
 /* CSR mintthresh number (0x347) as in drivers/interrupt_controller/intc_clic.h;
  * read raw: the toolchain knows only standard CSR names.
  */
+#if defined(CONFIG_SOC_SERIES_D13X)
 static unsigned long read_mintthresh(void)
 {
 	unsigned long value = 0;
 
-#if defined(CONFIG_SOC_SERIES_D13X)
 	__asm__ volatile("csrr %0, 0x347" : "=r"(value));
-#endif
 	return value;
 }
+#endif
 
 static struct tick_regs tick_regs_get(void)
 {
