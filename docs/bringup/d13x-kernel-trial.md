@@ -12,6 +12,10 @@ SDK aic_soc.h 的外设枚举止于 CIR_IRQn=95，MAX_IRQn=96，这解释了默�
 实验开关 CONFIG_ARTINCHIP_D13X_DIAGNOSTIC_144_IRQS 让 NUM_IRQS=144，
 使当前驱动的初始化循环覆盖所报告槽位，并扩展默认向量/软件处理表。
 板级默认仍为 96；不会仅凭这次实验将所有平台改成 144。
+（Z1 记录：该开关已于 A2' 删除，`NUM_IRQS` 直接在
+`soc/artinchip/d13x/Kconfig.defconfig` 默认为 144，依据就是上面这次实板
+CLICINFO 读取；板上核查改为 `tests/kernel` 比较 CLICINFO 与
+`CONFIG_NUM_IRQS`。此处保留当时的 96 默认值描述，它是历史事实。）
 
 首次直接在 .conf 写 CONFIG_NUM_IRQS=144 被隐藏 Kconfig 选项忽略，
 产生警告且实际表仍为 96，该构建未交付。修正为有提示的显式实验开关后，

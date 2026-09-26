@@ -13,14 +13,6 @@ config SOC_SERIES_D13X
 
 if SOC_SERIES_D13X
 
-config ARTINCHIP_D13X_DIAGNOSTIC_144_IRQS
-	bool "Use the observed 144-slot CLIC table for the diagnostic board trial"
-	help
-	  Experimental opt-in for the board reporting CLICINFO=0x00600090.
-	  Covers all reported controller slots with initialized default handlers;
-	  does not add peripheral IRQ assignments beyond the SDK's 0..95 map.
-	  Leave disabled for the default software candidate.
-
 config ARTINCHIP_D13X_BOOT_CONTRACT
 	bool "Acknowledge the documented bootloader handoff"
 	help

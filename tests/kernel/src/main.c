@@ -378,8 +378,9 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 	       at_exit.mil, mil_of(at_exit.mil), mpil_of(at_exit.mcause));
 	mil_watch_report("timer_isr_delivery", &milw);
 #if defined(CONFIG_SOC_SERIES_D13X)
-	/* Live validation of the 144-slot premise behind the diagnostic build. */
-	zassert_equal(at_exit.clic_info & 0x1FFFU, 144U, "CLIC numint mismatch");
+	/* The SoC's NUM_IRQS is justified by this register, not by a guess. */
+	zassert_equal(at_exit.clic_info & 0x1FFFU, (uint32_t)CONFIG_NUM_IRQS,
+		      "CLIC numint mismatch");
 #endif
 	zassert_true(count >= 20, "no timer-ISR expiry observed while spinning");
 	zassert_equal(milw.violations, 0U, "thread-state MIL went non-zero during spin");

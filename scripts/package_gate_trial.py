@@ -5,8 +5,8 @@ Packages one of the three gate builds -- the MIL-heartbeat kernel suite
 (--app kernel), the FPU stress matrix (--app fpu) or the sustained
 kernel+FPU stress application (--app stress) -- into a flashable product image.
 All three boot at __start in the same 0x40000000 64 KiB window
-(samples/handoff_probe/product-window.overlay) with the owner-reported 144-slot
-CLIC table (tests/<app>/product-window.conf), so they share one set of
+(samples/handoff_probe/product-window.overlay) with the SoC's 144-slot CLIC table
+(soc/artinchip/d13x/Kconfig.defconfig), so they share one set of
 structural binding checks. This is a sibling of the per-artifact packagers
 (package_kernel_trial.py stays pinned to the round-12 baseline image and is not
 modified here).
@@ -54,11 +54,22 @@ PINNED = {
                'c0d7a411a47b6b4fe33442c5b892a4e509bad60ce377e2801b56e1332fe5939d'),
 }
 ENTRY_SYMBOL = '__start'
+# Mirrors CONFIG_NUM_IRQS (soc/artinchip/d13x/Kconfig.defconfig); a build with any
+# other table size is not the reviewed gate configuration and is rejected below.
 NUM_IRQS = 144
 # The experimentally exercised product window, not an inferred hardware map.
 WINDOW_START = 0x40000000
 WINDOW_BYTES = 65536
 APPS = ('kernel', 'fpu', 'stress')
+# What the board log in artifacts/ actually covers, per application. Kept next to
+# the packaging code so a verification.json can never claim more than the archive.
+HARDWARE_RESULT = {
+    'kernel': 'kernel 9/9 observed PASS on-board (one archived round; further '
+              'repeats are operator-reported without per-round logs)',
+    'fpu': 'the FPU context matrix observed PASS on-board (two archived boots)',
+    'stress': 'the 600 s window observed PASS on-board (log tail only: no begin '
+              'line and no intermediate heartbeats archived)',
+}
 # Hardware evidence for the ten-minute gate item; the QEMU coverage profile is
 # shorter on purpose and must never be packaged as a flashable gate image.
 STRESS_DURATION_SEC = '600'
@@ -154,18 +165,17 @@ def package(reference, elf_data, raw, app, image_name, expect_elf=None,
     report.update(status='OFFLINE_VERIFIED_UNPINNED' if unreviewed else 'OFFLINE_VERIFIED',
                   app=app, image_name=image_name,
                   scope=f'experimental {app} gate build in product window; '
-                        'default SRAM not validated',
+                        'board-default SRAM link target not validated on-board',
                   manual_experiment_ready=True, loadable_image=False,
                   unreviewed_build=unreviewed,
                   elf=elf_rec, binary=bin_rec, entry=entry,
                   memory_start=WINDOW_START, memory_end=WINDOW_START + segment['p_memsz'],
                   stress_duration_sec=duration,
-                  limits='Offline packaging only: kernel 9/9 and the FPU context matrix '
-                         'were observed PASS on-board with thread-state MIL=0, the '
-                         'cold-boot and multi-round repeats have no log archived in this '
-                         'repository yet, and a %s image carries the %s s stress candidate '
-                         'whose hardware result stays pending until the board log is '
-                         'returned' % (app, STRESS_DURATION_SEC))
+                  limits='Offline packaging only: this run re-checks the pinned ELF/BIN '
+                         'and the window binding and adds no hardware evidence. %s with '
+                         'thread-state MIL=0; the cold-boot repeats are operator-reported '
+                         'without archived per-run logs, and loadable_image stays false'
+                         % HARDWARE_RESULT[app])
     return output, fit, report
 
 

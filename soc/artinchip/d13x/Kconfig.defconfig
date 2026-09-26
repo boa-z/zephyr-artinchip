@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 if SOC_SERIES_D13X
 
+# This board's E907 CLIC reports CLICINFO=0x00600090, i.e. numint[12:0]=144, so
+# the vector and ISR tables cover every slot the controller implements rather
+# than the SDK peripheral map's 0..95. tests/kernel re-reads the register.
 config NUM_IRQS
-	default 144 if ARTINCHIP_D13X_DIAGNOSTIC_144_IRQS
-	default 96
+	default 144
 
 config SYS_CLOCK_TICKS_PER_SEC
 	default 1000
