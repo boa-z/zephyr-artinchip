@@ -1645,6 +1645,18 @@ files:
   dependencies:
   - Python and pinned Zephyr tooling
   review_status: reviewed
+- path: tests/host/test_package_gate.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project automation; repository LICENSE.
+  rights_holders:
+  - Project contributors
+  changes: Hermetic packaging rejections for a missing stress profile, shortened
+    coverage durations, enabled fault injection, tampered BIN/ELF, cross-app mixes
+    and a non-baseline reference image.
+  dependencies:
+  - scripts/package_gate_trial.py
+  review_status: reviewed
 handoff_reset_decoder_references:
   usage: Reference-only for docs/bringup/d13x-product-image-evidence.md; no source copied
   license: Apache-2.0 in referenced files

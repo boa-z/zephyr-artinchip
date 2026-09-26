@@ -23,14 +23,20 @@ class EvidenceTests(unittest.TestCase):
         self.logs = self.root / "logs"
         self.negative = self.root / "negative"
         self.negative.mkdir()
-        (self.negative / "probes.json").write_text(json.dumps({"status":"PASS", "missing_signal":{"exit_code":1}, "frozen_cpu":{"exit_code":124,"timed_out":True}}))
+        (self.negative / "probes.json").write_text(json.dumps({
+            "status": "PASS", "missing_signal": {"exit_code": 1},
+            "frozen_cpu": {"exit_code": 124, "timed_out": True},
+            "stress_injections": {mode: {"exit_code": 1, "timed_out": False,
+                                         "claims_pass": False, "reason": reason}
+                                  for mode, reason in evidence.STRESS_FAILURES.items()}}))
         for p in (self.qemu, self.d13x, self.logs):
             p.mkdir()
         (self.logs / "build.log").write_text("retained failure or success log")
         (self.logs / ".env").write_text("must never be collected")
         self.environment = self.root / "environment.json"
         self.environment.write_text('{"status":"PASS"}')
-        names = {"artinchip.bringup", "artinchip.kernel", "artinchip.fpu"}
+        names = {"artinchip.bringup", "artinchip.kernel", "artinchip.fpu",
+                 "artinchip.z0_stress"}
         def cases(name):
             if name == "artinchip.kernel":
                 return [name + ".artinchip_kernel." + case for case in
@@ -198,7 +204,11 @@ class EvidenceTests(unittest.TestCase):
             ("d13x/twister.json", lambda d: d["testsuites"][0].update(status="passed")),
             ("environment.json", lambda d: d.update(status="FAIL")),
             ("negative/probes.json", lambda d: d["missing_signal"].update(exit_code=0)),
-            ("negative/probes.json", lambda d: d["frozen_cpu"].update(timed_out=False))]
+            ("negative/probes.json", lambda d: d["frozen_cpu"].update(timed_out=False)),
+            ("negative/probes.json", lambda d: d["stress_injections"]["timer"].update(exit_code=0)),
+            ("negative/probes.json", lambda d: d["stress_injections"]["mil"].update(claims_pass=True)),
+            ("negative/probes.json", lambda d: d["stress_injections"]["fpu"].update(reason="unrelated")),
+            ("negative/probes.json", lambda d: d["stress_injections"].pop("peer"))]
         for name, mutate in changes:
             self.archive.write_bytes(original)
             self.rehash_json(name, mutate)
