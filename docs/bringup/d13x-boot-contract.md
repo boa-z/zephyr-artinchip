@@ -3,17 +3,29 @@
 **HARDWARE_PENDING. This contract is required input to a future loader adapter,
 not evidence that the installed bootloader already satisfies it.**
 
-The candidate is linked into the bounded SRAM interval
-`[0x30080000, 0x30100000)`. This is a compile-time diagnostic allocation inside
-the SDK SRAM S0 region; it has NOT been established as free on the installed
-loader. No download/staging address is assigned. PSRAM is not used by Zephyr.
-The precise ELF entry and PT_LOAD spans are taken from `candidate.json`, never
-inferred from the filename. Raw bin starts at the ELF's first load address.
+Two link targets have been used, and they are not the same memory:
+
+- The diagnostic candidate built from `samples/handoff_probe` with no overlay is
+  linked into `[0x30080000, 0x30100000)`, the middle 512 KiB of the 1 MiB SRAM
+  that the SDK declares at `SRAM_BASE 0x30040000` (`AIC_SRAM_TOTAL_SIZE`). This is
+  a compile-time allocation; it has NOT been established as free on the installed
+  loader.
+- The three Z0 stability-gate images (kernel, fpu, stress) were linked with
+  `samples/handoff_probe/product-window.overlay` into `[0x40000000, 0x40010000)`.
+  Per the SDK link script `0x40000000` is `PSRAM_CMA`'s origin
+  (`AIC_PSRAM_SIZE = 0x1000000` on this board), so those on-board runs executed
+  from loader-initialised PSRAM. Zephyr contributes no XSPI/PSRAM driver, which is
+  what requirement 4 below covers; it does not make PSRAM usage absent.
+
+No download/staging address is assigned. The precise ELF entry and PT_LOAD spans
+are taken from `candidate.json`, never inferred from the filename. Raw bin starts
+at the ELF's first load address.
 
 Required handoff:
 
-1. Single E907 hart in M-mode, no address translation, writable/executable SRAM
-   with the selected region free of loader stack/heap/boot arguments/DMA.
+1. Single E907 hart in M-mode, no address translation, writable/executable memory
+   (SRAM or PSRAM, per the link target above) with the selected region free of
+   loader stack/heap/boot arguments/DMA.
 2. Interrupt delivery masked before calling Zephyr entry. Bootloader must not
    expect Zephyr to return. Its a0/a1 boot arguments are not a Zephyr boot ABI.
 3. Loader completes writes, cleans dirty data for the loaded range and ensures

@@ -1,7 +1,10 @@
 /* SPDX-License-Identifier: Apache-2.0
- * Diagnostic allocation only, not a claim about total PSRAM capacity.
- * First 64 KiB of the previously exercised original-product interval.
- * Loader owns initialization; no PSRAM controller driver is enabled here.
+ * Experimental link window, not a memory-map claim: 0x40000000 is where the D50T
+ * SDK link script puts PSRAM_CMA (AIC_PSRAM_SIZE = 16 MiB), and this takes only
+ * the first 64 KiB of the interval the original product firmware already
+ * exercised. The loader owns XSPI/PSRAM initialisation and no Zephyr PSRAM driver
+ * is enabled here, so an image linked into this window runs from loader-prepared
+ * PSRAM; that is a consequence of the handoff, not evidence about PSRAM drivers.
  */
 / {
     chosen {

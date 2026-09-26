@@ -15,7 +15,12 @@
 		zephyr,console = &uart0;
 	};
 
-	/* Subset of SRAM S0: leave low 256 KiB and high 256 KiB untouched. */
+	/*
+	 * Middle 512 KiB of the 1 MiB SRAM declared by the SoC &sram node
+	 * (0x30040000..0x30140000, AIC_SRAM_TOTAL_SIZE in the D50T SDK): the low
+	 * and high 256 KiB are left for the loader. That split is a handoff
+	 * assumption, not a proven-free region; see docs/bringup/d13x-boot-contract.md.
+	 */
 	sram0: memory@30080000 {
 		compatible = "mmio-sram";
 		reg = <0x30080000 DT_SIZE_K(512)>;

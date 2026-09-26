@@ -39,9 +39,12 @@ network/bootstrap installation was not repeated in this continuation; Linux setu
 and remote GitHub Actions execution remain NOT_RUN. No bit-for-bit reproducibility
 claim is made.
 
-Z0 supplies D133ECS metadata, SRAM-only board DTS, explicit boot-contract opt-in,
-E907 reset hook and legacy CLIC layout patch. Console and machine timer reuse
-pinned Zephyr drivers. PSRAM stays disabled. The candidate uses Zephyr scheduling
+Z0 supplies D133ECS metadata, a bounded-SRAM board DTS, explicit boot-contract
+opt-in (from Z1 onwards that acknowledgement gates image collection rather than
+compilation), E907 reset hook and legacy CLIC layout patch. Console and machine
+timer reuse pinned Zephyr drivers. Zephyr drives no PSRAM: the SRAM candidate
+links into SRAM, while the three Z0 gate images linked into loader-initialised
+PSRAM at 0x40000000. The candidate uses Zephyr scheduling
 and FPU management; it does not import an SDK or RT-Thread runtime.
 
 ## 3. Dependencies and tools

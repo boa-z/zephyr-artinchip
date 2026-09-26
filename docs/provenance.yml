@@ -9,7 +9,7 @@ files:
   license_basis: Original implementation; repository LICENSE; human DCO pending.
   rights_holders:
   - Project contributors
-  changes: Opt-in diagnostic kernel profile using observed 144-slot CLIC capacity.
+  changes: Boot-contract acknowledgement for the kernel gate profile in the experimental product window.
   dependencies:
   - tinyspl_diagnostic_references
   review_status: reviewed
@@ -41,7 +41,9 @@ files:
   license_basis: Original implementation; repository LICENSE; human DCO pending.
   rights_holders:
   - Project contributors
-  changes: Explicit experimental allocation within the exercised product address window.
+  changes: Explicit experimental allocation at the address the SDK link script names PSRAM_CMA
+    (0x40000000), limited to the 64 KiB interval the product firmware already exercised; comments record
+    that the loader owns PSRAM initialisation and Zephyr drives no PSRAM here.
   dependencies:
   - tinyspl_diagnostic_references
   review_status: reviewed
@@ -411,8 +413,9 @@ files:
   rights_holders:
   - ArtInChip Technology Co., Ltd
   - D50T product contributors
-  changes: Use board UART configuration and bounded SRAM subset; loader assumptions documented, PSRAM
-    off.
+  changes: Use board UART configuration and a bounded middle 512 KiB SRAM subset inside the 1 MiB SoC
+    SRAM region; loader assumptions documented, no Zephyr PSRAM driver (gate images link into
+    loader-initialised PSRAM, see samples/handoff_probe/product-window.overlay).
   dependencies:
   - Pinned Zephyr APIs/build system
   review_status: reviewed
@@ -429,6 +432,14 @@ files:
     revision: c5807f9e7d18292f920dafaa018b8174635085c4
     path: bsp/artinchip/sys/d13x/link_script/gcc_aic_nopsram.ld.S
     sha256: 02ec9fea77bc413d4e60e2a9404f1382e24212e5b41c6ada8d416cf635942dd2
+  - project: boa-w/luban-lite-jc-d50t-rev
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: bsp/artinchip/sys/d13x/link_script/gcc_aic.ld.S
+    sha256: 7080da96a41423b4064537c913a89e8f003b2d842d1b3524fdc75af0946188c4
+  - project: boa-w/luban-lite-jc-d50t-rev
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: target/d13x/common/Kconfig.board
+    sha256: b2469e46944a424cea7dd893148ec5752925217acef2e83ec88ab9921c4a24a1
 - path: boards/boa/d50t_2_lite/d50t_2_lite_d133ecs.yaml
   kind: new
   license: Apache-2.0
@@ -471,6 +482,8 @@ files:
   - ArtInChip Technology Co., Ltd
   - Alibaba Group Holding Limited
   changes: Express peripheral addresses, IRQs, clock and cache-line facts in Zephyr DTS; no copied HAL.
+    SRAM and PSRAM regions carry the SDK sizes; BROM is deliberately absent because the SDK contradicts
+    itself (aic_soc.h comment 512KB vs gcc_aic.ld.S 256K), so no value could be cited without inference.
   dependencies:
   - Pinned Zephyr APIs/build system
   review_status: reviewed
@@ -496,6 +509,22 @@ files:
     revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
     path: bsp/artinchip/sys/d13x/Kconfig.chip
     sha256: 118708e44dee19cac379f2004221bc9e829b0c83e3e3766fc1351549b11eed20
+  - project: boa-w/luban-lite-jc-d50t-rev
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: bsp/artinchip/sys/d13x/include/aic_soc.h
+    sha256: 6136575bdb2e1cdb4834684c47cea7978e035594236264b11cbec6fbdc625710
+  - project: boa-w/luban-lite-jc-d50t-rev
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: target/d13x/common/Kconfig.board
+    sha256: b2469e46944a424cea7dd893148ec5752925217acef2e83ec88ab9921c4a24a1
+  - project: boa-w/luban-lite-jc-d50t-rev
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: bsp/artinchip/sys/d13x/link_script/gcc_aic.ld.S
+    sha256: 7080da96a41423b4064537c913a89e8f003b2d842d1b3524fdc75af0946188c4
+  - project: boa-w/luban-lite-jc-d50t-rev
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: target/configs/d13x_d50t-2-lite_rt-thread_D50T-2-Lite_defconfig
+    sha256: 98a07d5924c247afb7af1dfe8deee87eb2e696f54cae6d2b9ab0df8d519f5314
 - path: include/artinchip/module.h
   kind: new
   license: Apache-2.0
@@ -825,8 +854,8 @@ files:
   license_basis: Original implementation; repository LICENSE; human DCO pending.
   rights_holders:
   - Project contributors
-  changes: FPU gate profile mirroring the kernel product-window conf (boot contract
-    plus observed 144-slot CLIC capacity).
+  changes: FPU gate profile mirroring the kernel product-window conf (boot-contract acknowledgement
+    only; the 144-slot CLIC table is the SoC default).
   dependencies:
   - tinyspl_diagnostic_references
   review_status: reviewed
@@ -1552,8 +1581,8 @@ files:
     pending.
   rights_holders:
   - Project contributors
-  changes: Same bytes as tests/kernel/product-window.conf (boot contract plus the
-    owner-supplied 144-slot CLIC profile), so all three gate images share one window
+  changes: Same settings as tests/kernel/product-window.conf (boot-contract acknowledgement; the
+    144-slot table comes from the SoC default), so all three gate images share one window
     configuration.
   dependencies:
   - tests/kernel/product-window.conf

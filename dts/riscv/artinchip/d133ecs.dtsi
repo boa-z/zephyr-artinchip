@@ -1,8 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2022, Artinchip Technology Co., Ltd
  * Copyright (C) 2017-2019 Alibaba Group Holding Limited
- * Modified: register facts from aic_soc.h/core_rv32.h/sys_freq.c represented
- * as Zephyr devicetree; no SDK runtime implementation is included.
+ * Modified: register and memory-map facts from aic_soc.h/core_rv32.h/sys_freq.c/
+ * Kconfig.board/gcc_aic.ld.S represented as Zephyr devicetree; no SDK runtime
+ * implementation is included.
  */
 #include <freq.h>
 #include <mem.h>
@@ -10,6 +11,27 @@
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
+
+	/*
+	 * Address facts only; the board chooses where Zephyr links. SRAM_BASE is
+	 * 0x30040000 and AIC_SRAM_TOTAL_SIZE defaults to 1 MiB; the SDK link script
+	 * puts PSRAM_CMA at 0x40000000 and the D50T product configuration sets
+	 * AIC_PSRAM_SIZE to 16 MiB. PSRAM (XSPI) is initialised by the loader - no
+	 * Zephyr PSRAM driver is enabled - so a PSRAM-resident image inherits that
+	 * handoff rather than proving Zephyr can drive PSRAM.
+	 *
+	 * No BROM node: the SDK contradicts itself on its size (aic_soc.h comment
+	 * says 512KB, gcc_aic.ld.S declares 256K). Recorded in docs/provenance.yml.
+	 */
+	sram: memory@30040000 {
+		compatible = "mmio-sram";
+		reg = <0x30040000 DT_SIZE_M(1)>;
+	};
+
+	psram: memory@40000000 {
+		compatible = "mmio-sram";
+		reg = <0x40000000 DT_SIZE_M(16)>;
+	};
 
 	cpus {
 		#address-cells = <1>;
