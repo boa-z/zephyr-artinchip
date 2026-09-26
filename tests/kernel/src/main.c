@@ -44,18 +44,16 @@ struct poll_snapshot {
 /* CLIC pending byte for the machine timer IRQ (layout as in tick_regs_get).
  * D13x only; zero elsewhere.
  */
+#if defined(CONFIG_SOC_SERIES_D13X)
 static uint8_t clic_ip_now(void)
 {
-#if defined(CONFIG_SOC_SERIES_D13X)
 	uint32_t timer_irq = DT_IRQN(DT_INST(0, riscv_machine_timer));
 	uintptr_t clic_ip = DT_REG_ADDR(DT_INST(0, riscv_clic)) + 0x1000U +
 			    (uintptr_t)timer_irq * 4U;
 
 	return sys_read8(clic_ip);
-#else
-	return 0;
-#endif
 }
+#endif
 
 struct tick_regs {
 	uint64_t mtime;
