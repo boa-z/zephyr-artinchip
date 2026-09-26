@@ -249,3 +249,36 @@ C:/aic-z0-kernel-window-v6（干净树），文件 36824 字节，RAM 48352/6553
 使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
 特别保留 KERNEL-SPINPROBE 行与扩展的 KERNEL-TICKDBG 行。
 第五轮 hardware_validation=pending。
+
+## 第五轮实板结果：失败，CLIC 已见 pending 但运行线程中零 trap
+
+用户回传日志对应 36824 字节 payload（与 zephyr.bin 一致），Zephyr build
+839728050444。原始日志见 artifacts/z0-kernel-r5-board-result/board-log.txt，
+摘要见同目录 user-result.json（注：粘贴的 summary 行称 fail=2，但分项列出
+3 个 FAIL，4 pass + 3 fail = 7 项计 57.14%，以分项为准）。恢复待确认。
+
+- Preflight 与四项阻塞测试通过，耗时与前轮一致。
+- test_timer_isr_delivery 在 main.c:250 失败：count=0，且
+  `exit_clic_ip=1 exit_clic_ie=1 exit_clic_mth=00000000`，
+  exit_cmp 原地不动（1688000），mcause 不变。
+- test_timer_spin_yield 在 main.c:291 失败：同样 count=0。
+- test_timer_preemption 在 main.c:308 复现失败，签名一致。
+
+分析结论：CLIC 已观察到定时器 pending（IP=1），使能开、阈值 0、
+MIE 置位，但运行线程期间零 trap；线程一旦阻塞即恢复。
+另经代码核查（kernel/include/kswap.h do_swap 仅在新老线程不同时
+切换），单 prio-2 线程的 k_yield 不产生实质上下文切换，故第五轮
+yield 测试只验证了“进调度器代码”，未验证切换路径，不单独作为
+切换无关的证据。
+
+## 第六轮诊断：同优先级对等切换与阈值 CSR（待实板）
+
+- 新增 `test_timer_spin_switch`：同优先级对等自旋线程，测试线程每
+  1000 次 k_yield，强制走 ecall 真实切换（timeslice 重置与重挂载
+  评估随之运行），双双永不阻塞，打印 KERNEL-SPINPROBE mode=switch。
+  通过则指向切换路径，不通过则剩余差异为阻塞/wfi。
+- KERNEL-TICKDBG 追加 exit_mcause 与 exit_mintthresh（CSR 0x347，
+  编号见已交付驱动头 intc_clic.h）：若 CSR 阈值非零而 MMIO MTH 为
+  零，则存在双阈值门控嫌疑。
+- 用例清单增至 8 项（evidence.py 与主机测试同步）；QEMU 下采样
+  填零、不影响判定。
