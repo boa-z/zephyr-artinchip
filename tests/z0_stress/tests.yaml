@@ -1,0 +1,18 @@
+tests:
+  artinchip.z0_stress:
+    platform_allow:
+      - qemu_riscv32
+      - d50t_2_lite/d133ecs
+    integration_platforms:
+      - qemu_riscv32
+    tags:
+      - kernel
+      - fpu
+    timeout: 120
+    harness: console
+    harness_config:
+      type: multi_line
+      ordered: true
+      regex:
+        - "Z0-STRESS begin schema=1"
+        - "Z0-STRESS PASS"

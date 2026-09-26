@@ -1507,6 +1507,108 @@ files:
   - scripts/audit_loader.py
   - scripts/audit_loader_memory.py
   review_status: reviewed
+- path: tests/z0_stress/CMakeLists.txt
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: Standalone stress app build; links src/main.c plus the existing audited
+    tests/fpu/src/probe.S instead of duplicating the register-lifetime probe.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  - tests/fpu/src/probe.S
+  review_status: reviewed
+- path: tests/z0_stress/Kconfig
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: Duration/heartbeat/timer/sleep knobs and four fault-injection options that
+    exist only for negative probes; the hardware packager rejects any build with an
+    injection option enabled.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/z0_stress/prj.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: FPU sharing, time-slicing and assert-enabled base profile for the sustained
+    verifier; no board or hardware parameter inferred.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/z0_stress/product-window.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: Same bytes as tests/kernel/product-window.conf (boot contract plus the
+    owner-supplied 144-slot CLIC profile), so all three gate images share one window
+    configuration.
+  dependencies:
+  - tests/kernel/product-window.conf
+  review_status: reviewed
+- path: tests/z0_stress/boards/d50t_2_lite_d133ecs.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: Keep the D13x boot contract on for the hardware build; the 600 s duration
+    comes from the default so a missing product-window.conf cannot silently shorten it.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/z0_stress/boards/qemu_riscv32.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: Short 3 s coverage profile for QEMU only; never packaged and never recorded
+    as the ten-minute hardware stress result.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: tests/z0_stress/src/main.c
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New sustained verifier over machine-timer, time-slice, voluntary-yield,
+    blocking-sleep and dual-FPU-peer paths with thread-context-only MINTSTATUS sampling,
+    per-5 s heartbeat, stall detection and an explicit PASS/FAIL summary. It does not
+    link the kernel or fpu ztest suites and changes no CLIC, timer or SoC logic.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  - tests/fpu/src/probe.S
+  review_status: reviewed
+- path: tests/z0_stress/tests.yaml
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: Console-harness scenario for the standalone stress app at the pinned Zephyr
+    revision.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
 handoff_reset_decoder_references:
   usage: Reference-only for docs/bringup/d13x-product-image-evidence.md; no source copied
   license: Apache-2.0 in referenced files

@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: Apache-2.0
+mainmenu "Z0 sustained stress"
+source "Kconfig.zephyr"
+
+config AIC_Z0_STRESS_DURATION_SEC
+	int "Sustained stress duration in seconds"
+	default 600
+	range 1 86400
+	help
+	  The physical D133 gate profile must stay at 600 seconds; shortening it
+	  invalidates the Z0 stability evidence. QEMU uses a board-specific short
+	  override that only exercises the application logic and is never recorded
+	  as hardware stress.
+
+config AIC_Z0_STRESS_HEARTBEAT_SEC
+	int "Heartbeat and no-progress interval in seconds"
+	default 5
+	range 1 60
+	help
+	  Every interval the supervisor prints one line and requires progress on
+	  every watched counter. A stalled counter fails here instead of waiting
+	  for the full duration.
+
+config AIC_Z0_STRESS_TIMER_PERIOD_MS
+	int "Periodic k_timer interval in milliseconds"
+	default 5
+	range 1 1000
+	help
+	  Drives machine-timer comparator re-arm and expiry counting.
+
+config AIC_Z0_STRESS_SLEEP_MS
+	int "Blocking worker sleep interval in milliseconds"
+	default 20
+	range 1 1000
+	help
+	  Sustained timeout/blocked-wakeup path, separate from the spin paths.
+
+config AIC_Z0_STRESS_PEER_SPIN_LIMIT
+	int "Maximum assembly iterations awaiting a peer epoch"
+	range 1 2147483647
+	default 1000000
+	help
+	  Diagnostic loop bound, not a portable duration. It bounds how long a
+	  peer can spin when its partner has already left the loop.
+
+config AIC_Z0_STRESS_INJECT_MIL
+	bool "Inject a simulated thread-state MIL violation"
+	help
+	  Negative-probe build only: the violation counter is driven directly, so
+	  this proves the FAIL path fires without claiming a real CSR reading. The
+	  hardware packager rejects any image with an injection option enabled.
+
+config AIC_Z0_STRESS_INJECT_FPU
+	bool "Corrupt one callee-saved FP result after a voluntary switch"
+	help
+	  Negative-probe build only; proves a register/fcsr mismatch fails the run.
+
+config AIC_Z0_STRESS_INJECT_TIMER
+	bool "Stop the periodic timer so its counter stalls"
+	help
+	  Negative-probe build only; proves a stalled timer counter fails the run.
+
+config AIC_Z0_STRESS_INJECT_PEER
+	bool "Keep the second FPU peer out of the loop"
+	help
+	  Negative-probe build only; proves a missing peer preemption fails the run.
