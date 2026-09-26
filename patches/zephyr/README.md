@@ -40,8 +40,10 @@ initialization accepting values 9..15 before this guard. Legacy and Nuclei keep
 the existing level clamp; the generic branch rejects an inconsistent configured
 level. Valid generic/Nuclei layouts retain their register encoding.
 
-The initial staging commit in series.json applies to patch 1 only. Patch 2 is a
-replayable diff applied with git apply --check to the isolated dependency. Both
+Both patches are now commits on the staging branch, in series order, and
+series.json records each patch path with its staging commit. The working-tree
+diff applied to the west dependency is verified against the same final blobs, so
+the staged series and the applied series cannot drift apart silently. Both
 hashes and final blobs are verified. tests/clic compiles this actual driver under
 legacy, generic and Nuclei configurations on QEMU with injected register I/O.
 This tests register access/encoding, not real E907 CSR/trap/mret behavior. Remove

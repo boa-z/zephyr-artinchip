@@ -114,11 +114,14 @@ decision is recorded at the end of this section.
 
 - Patch: `patches/zephyr/0002-clic-validate-control-width.patch`, SHA-256
   `39a8e07cd95372c6ad3089ac1fc134079b7301e0b355058825bfc734837aa15f`.
-- Staging state: **not yet a staging commit.** It is applied as a replayable diff
-  with `git apply --check` on top of candidate 1 on the same base; `series.json`
-  records its hash and the resulting blobs. Before submission it must become a
-  commit on `prereq/d13x-clic` so its message, authorship and diff can be reviewed
-  as one unit. This is the first Z1 action item for this candidate.
+- Staging state: commit `ce422750430903b3bb274741287c1af55d84229e` on
+  `prereq/d13x-clic`, directly on top of candidate 1's `1a42179e57c…` and on the
+  same base, so the two can be reviewed and replayed as one series. It was made by
+  `git apply --check` followed by `git apply` of the recorded patch, and the three
+  resulting Git blob identities were re-hashed against `series.json` before
+  committing - the staged series and the applied working-tree series are therefore
+  the same content, not two independently maintained copies. Local only: nothing
+  has been pushed from the staging tree.
 - Purpose: `INTCTLBITS` is the width of an eight-bit control register, and the
   level width cannot exceed the effective control width. Before the guard, values
   9..15 were accepted by initialisation - the fake-MMIO suite reproduced that -

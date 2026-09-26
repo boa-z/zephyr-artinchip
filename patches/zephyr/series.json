@@ -15,5 +15,12 @@
     "drivers/interrupt_controller/intc_clic.c": "db145d9311e9831437e57f6a7cb5b819a6c47028",
     "drivers/interrupt_controller/intc_clic.h": "a392dc3deac98441cca1896b1784519b57f3e9aa"
   },
-  "first_patch_staging_commit": "1a42179e57c7dc50c481210edcfe3a100c686835"
+  "staging": {
+    "tree": "zephyr-d13x-staging",
+    "branch": "prereq/d13x-clic",
+    "commits": {
+      "patches/zephyr/0001-clic-legacy-mmio-layout.patch": "1a42179e57c7dc50c481210edcfe3a100c686835",
+      "patches/zephyr/0002-clic-validate-control-width.patch": "ce422750430903b3bb274741287c1af55d84229e"
+    }
+  }
 }
