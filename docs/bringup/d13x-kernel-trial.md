@@ -432,3 +432,15 @@ idle 入口在此内核版本无重挂载（裸 wfi），而切换路径经 time
   向量模式位；medeleg/mideleg 应为 0。任一失配即驱动与线路不符，
   是中断投递失败的直接候选。
 - 用例清单保持 9 项不变；QEMU 下填零。
+
+## 第十轮交付（待实板）
+
+产物：artifacts/z0-kernel-r10-delivery/D50T_Z0_kernel_r10_diag.img。
+SHA-256: c0710afaaba78944ab850f8fd7290f39b87108ecfbaf6fbac59727d8635f2b0b。
+QEMU 9/9（C:/tmp/aic-qemu-r10）；D13x 目标构建
+C:/aic-z0-kernel-window-v11（干净树），文件 38872 字节，RAM 51936/65536；
+打包器按第十轮 ELF/BIN 固定哈希验证（提交 2a36c25），篡改负检查拒绝。
+使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
+特别保留扩展的 KERNEL-TICKDBG 行（含 clic_info/cfg/timer_ctrl、
+mtvec/medeleg/mideleg）与 numint 断言结果。
+第十轮 hardware_validation=pending。
