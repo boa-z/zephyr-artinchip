@@ -164,8 +164,12 @@ python scripts/package_gate_trial.py \
 ```
 
 `--allow-unpinned` 会把计算出的 ELF/BIN SHA-256 写进 `verification.json`。
-评审通过后把哈希固定进 `package_gate_trial.py` 的 `PINNED[app]` 字典（或每次
-传 `--expect-elf-sha`/`--expect-bin-sha`），此后任何被篡改的探针都会在打包阶段
+它同样**覆盖已存在的 `PINNED[app]` 条目**：源码有意变更（例如 Z1 的 A1/A2'
+改动）后新构建必然与旧 pin 不同，此时用它打包，记录会写成
+`status=OFFLINE_VERIFIED_UNPINNED`、`unreviewed_build=true`，且 `limits`
+明确说明任何板级结果都不属于这些字节 —— 不许用 `--expect-elf-sha` 把新哈希
+冒充成“已评审的固定构建”。评审通过后把哈希固定进 `package_gate_trial.py`
+的 `PINNED[app]` 字典，此后任何被篡改的探针都会在打包阶段
 被拒（exit 1）。这与 kernel 第十二轮两段式固定（提交 49c4f5c）的先例一致。
 固定项**按 `--app` 分别索引**是刻意的：早先共用一对全局常量时，一旦 pin 了
 FPU 的哈希，合法的 kernel 构建会被误拒。
@@ -221,7 +225,9 @@ zephyr.bin 逐字节相同、入口 `__start`、`_irq_vector_table=144*4`、
 `.debug_line_str` 四段不同（DWARF 内嵌构建目录路径），全部可加载内容一致。
 结论是 **BIN 固定才代表载荷内容**；换目录重建时 ELF 哈希必然变化，此时传
 `--expect-elf-sha <新哈希>` 即可，BIN 固定与 BASELINE 参考图校验照常强制生效
-——这是路径指纹差异，不是篡改，不要用 `--allow-unpinned` 绕过。
+——这是路径指纹差异，不是篡改，不要用 `--allow-unpinned` 绕过。此结论**只适用于
+BIN 仍等于固定值的情形**；若 BIN 也不同，说明源码有意变更，按上节改用
+`--allow-unpinned`，让记录如实写成未固定（`unreviewed_build=true`）。
 
 哈希**已固定**进 `scripts/package_gate_trial.py` 的 `PINNED['kernel']`、
 `PINNED['fpu']` 与 `PINNED['stress']`。kernel/fpu 两镜像已实板 PASS；stress 的

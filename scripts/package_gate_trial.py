@@ -19,9 +19,13 @@ Pinning follows the kernel r12 two-stage precedent: the first reproducible build
 is packaged with --allow-unpinned, which records the computed ELF/BIN SHA-256
 into verification.json; those values are then pinned per application in PINNED
 below (or passed as --expect-elf-sha/--expect-bin-sha) so every later run rejects
-a tampered probe. The pins are keyed by --app deliberately: one shared pair would
-make a legitimate kernel build fail the fpu pin and vice versa. The BASELINE
-product reference check is always enforced.
+a tampered probe. --allow-unpinned also overrides an existing PINNED entry, which
+is how a deliberately new source revision is packaged: the pin is dropped, the
+status becomes OFFLINE_VERIFIED_UNPINNED and unreviewed_build is true, so the
+record never claims a board result for bytes that were not on the board. The
+pins are keyed by --app deliberately: one shared pair would make a legitimate
+kernel build fail the fpu pin and vice versa. The BASELINE product reference
+check is always enforced.
 """
 import argparse
 import io
@@ -147,6 +151,11 @@ def package(reference, elf_data, raw, app, image_name, expect_elf=None,
     elf_rec = record(elf_data)
     bin_rec = record(raw)
     default_elf, default_bin = PINNED.get(app, (None, None))
+    if allow_unpinned:
+        # An operator override: a new source revision legitimately differs from
+        # the reviewed pin, so the pin is dropped rather than satisfied and the
+        # record below says the build is unreviewed.
+        default_elf = default_bin = None
     pinned_elf = expect_elf or default_elf
     pinned_bin = expect_bin or default_bin
     if pinned_elf and elf_rec['sha256'] != pinned_elf:
@@ -162,6 +171,18 @@ def package(reference, elf_data, raw, app, image_name, expect_elf=None,
     verify(fit, raw, WINDOW_START, entry)
     output = replace_os(reference, fit)
     report = verify_replacement(reference, output, fit)
+    if unreviewed:
+        limits = ('Offline packaging only: this build is not the pinned reviewed '
+                  'image, so no board result applies to these bytes. Its pinned '
+                  'predecessor reports %s with thread-state MIL=0, and that '
+                  'evidence belongs to the earlier image; loadable_image stays '
+                  'false' % HARDWARE_RESULT[app])
+    else:
+        limits = ('Offline packaging only: this run re-checks the pinned ELF/BIN '
+                  'and the window binding and adds no hardware evidence. %s with '
+                  'thread-state MIL=0; the cold-boot repeats are operator-reported '
+                  'without archived per-run logs, and loadable_image stays false'
+                  % HARDWARE_RESULT[app])
     report.update(status='OFFLINE_VERIFIED_UNPINNED' if unreviewed else 'OFFLINE_VERIFIED',
                   app=app, image_name=image_name,
                   scope=f'experimental {app} gate build in product window; '
@@ -171,11 +192,7 @@ def package(reference, elf_data, raw, app, image_name, expect_elf=None,
                   elf=elf_rec, binary=bin_rec, entry=entry,
                   memory_start=WINDOW_START, memory_end=WINDOW_START + segment['p_memsz'],
                   stress_duration_sec=duration,
-                  limits='Offline packaging only: this run re-checks the pinned ELF/BIN '
-                         'and the window binding and adds no hardware evidence. %s with '
-                         'thread-state MIL=0; the cold-boot repeats are operator-reported '
-                         'without archived per-run logs, and loadable_image stays false'
-                         % HARDWARE_RESULT[app])
+                  limits=limits)
     return output, fit, report
 
 

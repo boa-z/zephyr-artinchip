@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Gate packager rejections: profile, injection, tamper, app mix and baseline."""
+"""Gate packager: rejections, the unpinned override and baseline identity."""
 from pathlib import Path
 import sys
 import unittest
@@ -78,6 +78,27 @@ class GatePackagingTests(unittest.TestCase):
     def test_wrong_product_baseline_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "pinned known-good"):
             self.package(baseline=False)
+
+    def test_allow_unpinned_overrides_the_pin_and_labels_the_record(self):
+        # A new source revision must be packageable without faking the reviewed pin.
+        with patch.object(gate, "PINNED", PINS), patch.object(
+                gate, "BASELINE", record(REFERENCE)["sha256"]), patch.object(
+                gate, "window_binding", return_value=({"p_memsz": 4096}, 0x40000000)), patch.object(
+                gate, "encode", return_value=b"fit"), patch.object(gate, "verify"), patch.object(
+                gate, "replace_os", return_value=b"image"), patch.object(
+                gate, "verify_replacement", return_value={}):
+            _, _, report = gate.package(REFERENCE, b"new-kernel-elf", b"new-kernel-bin",
+                                        app="kernel", image_name="gate.img",
+                                        allow_unpinned=True)
+        self.assertTrue(report["unreviewed_build"])
+        self.assertEqual(report["status"], "OFFLINE_VERIFIED_UNPINNED")
+        self.assertNotIn("re-checks the pinned", report["limits"])
+        self.assertIn("no board result applies", report["limits"])
+        with patch.object(gate, "PINNED", PINS), patch.object(
+                gate, "BASELINE", record(REFERENCE)["sha256"]), self.assertRaisesRegex(
+                ValueError, "kernel ELF differs"):
+            gate.package(REFERENCE, b"new-kernel-elf", b"new-kernel-bin",
+                         app="kernel", image_name="gate.img")
 
 
 if __name__ == "__main__":

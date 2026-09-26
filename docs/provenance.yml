@@ -29,9 +29,10 @@ files:
   license_basis: Original implementation; repository LICENSE; human DCO pending.
   rights_holders:
   - Project contributors
-  changes: 'Generalises the window trial packager over --app kernel|fpu with per-app
-    pinned ELF/BIN hashes; same FIT, address, entry and 144-slot table checks. No
-    SDK code is included.'
+  changes: 'Generalises the window trial packager over --app kernel|fpu|stress with per-app
+    pinned ELF/BIN hashes; --allow-unpinned drops that app''s pin for a deliberately new
+    source revision and labels the record unreviewed_build. Same FIT, address, entry and
+    144-slot table checks. No SDK code is included.'
   dependencies:
   - tinyspl_diagnostic_references
   review_status: reviewed
@@ -1682,7 +1683,8 @@ files:
   - Project contributors
   changes: Hermetic packaging rejections for a missing stress profile, shortened
     coverage durations, enabled fault injection, tampered BIN/ELF, cross-app mixes
-    and a non-baseline reference image.
+    and a non-baseline reference image, plus the unpinned override (it must drop
+    the pin, mark the record unreviewed and still reject without the flag).
   dependencies:
   - scripts/package_gate_trial.py
   review_status: reviewed
