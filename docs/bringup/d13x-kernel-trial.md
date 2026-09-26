@@ -322,3 +322,15 @@ CSR 间接访问）。标准 CSR（mip/mie/mcause/mstatus）与 MMIO 读数
   采样。用例清单保持 8 项不变。
 - test_timer_spin_switch（同优先级对等切换）上轮未及运行，仍是
   待验证项：通过则指向切换路径，不通过则剩余差异为阻塞/wfi。
+
+## 第七轮交付（待实板）
+
+产物：artifacts/z0-kernel-r7-delivery/D50T_Z0_kernel_r7_diag.img。
+SHA-256: 4ec22ac261d5858e6590361bd83e9fe89b85088961500f29939b71aa2bee8f74。
+QEMU 8/8（C:/tmp/aic-qemu-r7）；D13x 目标构建
+C:/aic-z0-kernel-window-v8（干净树），文件 37648 字节，RAM 50688/65536；
+打包器按第七轮 ELF/BIN 固定哈希验证（提交 aae4e5b），篡改负检查拒绝。
+使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
+特别保留 KERNEL-SPINPROBE mode=switch 行与 KERNEL-TICKDBG 行
+（无 mintthresh 字段，保留 exit_mcause）。
+第七轮 hardware_validation=pending。
