@@ -134,3 +134,28 @@ user-result.json。
    抢占是否发生。本轮诊断无法区分二者；不延长等待预算、不修改优先级来
    掩盖失败。下一轮以 ISR 侧计数（k_timer 到期回调）与自旋等待分离两个
    分支，仍使用公开内核 API，不改上游驱动。
+
+## 第三轮诊断：分离 ISR 投递与线程抢占（待实板）
+
+新增 `test_timer_isr_delivery`（提交 e7fdbcc，原五项测试保持不动）：
+自旋期间只挂载 5 ms 周期 k_timer，到期回调在时钟 ISR 上下文计数，
+打印 `KERNEL-ISRPROBE schema=1 reason=... count=...`。count>=20 证明
+自旋中 ISR 可投递（偏向调度分支），count=0 指向投递/arm 分支。
+证据清单增至 6 用例（提交含 scripts/evidence.py 与主机测试同步）。
+
+QEMU qemu_riscv32：Twister 1/1 场景、6/6 用例通过，无警告；报告位于
+C:/tmp/aic-qemu-isr。ISRPROBE 行：
+`reason=isr count=20 priority=2 tick_delta=21 cycle_delta=2090821`。
+该结果验证诊断逻辑，不验证 E907 CLIC。
+D13x 目标构建：C:/aic-z0-kernel-window-v4（干净树重建，ELF/BIN 哈希
+与脏树构建一致，可复现），文件 35840 字节，RAM 47344/65536，范围
+[0x40000000, 0x4000b8b0)，仍在原实验 64 KiB 窗口内。入口
+__start=0x40000000；_irq_vector_table=576 字节，_sw_isr_table=1152
+字节（144 槽）。打包器按第三轮 ELF/BIN 固定哈希验证（提交 2eb2c44），
+篡改 BIN 负检查被拒绝（exit 1）。
+
+第三轮产物：artifacts/z0-kernel-isr-delivery/D50T_Z0_kernel_isr_diag.img。
+SHA-256: ec5b1b77cb436af41cd3ba1378cbd543c96b4f74409881993ff4f41165e39687。
+使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
+特别保留 KERNEL-ISRPROBE 行。判读规则见包内 history-and-details.md。
+第三轮 hardware_validation=pending，第二轮明确为 FAIL。
