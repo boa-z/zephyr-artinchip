@@ -108,6 +108,8 @@ real function linked from the module library.
 ## D13x candidate
 
 Read `docs/bringup/d13x-preflight.md` and `d13x-boot-contract.md` first.
+`docs/bringup/d13x-z1-platform-baseline.md` records the Z1 platform baseline and
+the three CLIC upstream candidate dossiers; no pull request has been opened.
 
 ```powershell
 python scripts/build_candidate.py bringup C:/tmp/aic-candidate-bringup
@@ -128,8 +130,10 @@ see docs/bringup/loader-audit.md for its nonzero BLOCKED result and scope limits
 The collector validates ELF/load spans/ABI/ISA/compile flags/input objects/linked
 runtime members and records hashes, source identity, toolchain and patch series.
 Output is raw ELF/bin/map/config/DTS plus evidence, **not a packaged flash image**.
-Link allocation is 512 KiB inside nominal 1 MiB SRAM; nominal 16 MiB PSRAM stays
-disabled. Actual installed-loader overlap, RAM staging, handoff, accepted container
+Link allocation is 512 KiB inside the SoC's 1 MiB SRAM; the Z0 gate images
+instead linked at `0x40000000`, the SDK's PSRAM_CMA origin, so they relied on
+loader-initialised PSRAM and no Zephyr PSRAM driver is enabled. Actual
+installed-loader overlap, RAM staging, handoff, accepted container
 and console wiring must be confirmed before loading. No speculative flash command
 or automatic programming is provided.
 
