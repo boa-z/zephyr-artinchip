@@ -41,11 +41,43 @@ still open.
 ### Reproducibility consequence
 
 The Z0 pins in `scripts/package_gate_trial.py` (`PINNED`) are hashes of builds
-made from `2fa4c80`. A1 touches the DTS and A2' the test source line numbering, so
-a rebuild at this head is **not** expected to reproduce those ELF hashes. The pins
-are historical evidence for the tagged baseline; re-pinning a Z1 build requires
-`--allow-unpinned` once plus a fresh board log, and the Z0 tag stays the address
-for the validated images.
+made from `2fa4c80`. A1 touches the DTS and A2' the test source, so a rebuild at
+this head is **not** expected to reproduce those ELF/BIN hashes. The pins are
+historical evidence for the tagged baseline, and the Z0 tag stays the address for
+the validated images.
+
+Until `a10052b` there was no way to package such a build: `--allow-unpinned` was
+consulted only after the pin comparison had already failed, so a deliberate
+source change was indistinguishable from a tampered probe. The flag now clears
+that app's pin and the record keeps the distinction -
+`status=OFFLINE_VERIFIED_UNPINNED`, `unreviewed_build=true`, and a `limits`
+sentence saying no board result applies to these bytes. `--expect-elf-sha`
+remains the route for a rebuild whose BIN still equals the pin and whose ELF
+differs only by the build-path fingerprint; the two cases are separated in
+`docs/bringup/d13x-z0-stability-gate.md`.
+
+### Packaged Z1 kernel image (board re-validation item still open)
+
+`artifacts/z1-kernel-window-delivery/` (delivery folders are not committed) holds
+`D50T_Z1_kernel_gate.img` from head `a10052b`, built pristine in
+`C:/aic-z1-kernel-window`:
+
+| Fact | Value |
+| --- | --- |
+| Image SHA-256 | `a6de8c6cc8d01251fae1d19b26ede487a856da4e7cd649d9fc7d5275771aba0c` |
+| `zephyr.elf` / size | `02c110455f2a460e7e517e1d50d3587495b717e3061b3b41c70f1c2723be36b0` / 644876 B |
+| `zephyr.bin` / size | `18945d34c7edee29563324e2258c19c00ceab74150414d79318e247298485f79` / 40352 B |
+| Load range and window | `[0x40000000, 0x4000d0a0)`, RAM 53408 B of 64 KiB (81.49%) |
+| Versus the Z0 kernel gate | identical RAM occupancy; BIN +24 B, which is the new `CLICINFO` assertion |
+| Offline gates | packager structural checks, `verification.json` `OFFLINE_VERIFIED_UNPINNED`, QEMU 8 scenarios / 28 cases passed with no warnings |
+| Cross-directory rebuild | `C:/aic-z1-kernel-window-2`: BIN byte-identical, repackaged image and `probe.itb` byte-identical, ELF differs only in DWARF build paths |
+
+The `+24 B` and the identical RAM figure matter for the reading: nothing about
+the placement changed, and the only new judgement the board is asked to make is
+whether the controller's reported slot count really equals 144. If the board
+prints `CLIC numint mismatch`, the SoC default in `Kconfig.defconfig` is wrong
+for that part and the configuration change must be revisited - not the
+assertion.
 
 ## 2. Platform fundamentals: closed and open
 
