@@ -7,16 +7,18 @@ from pathlib import Path, PurePosixPath
 import sys
 import zipfile
 
-APPLICATIONS = {"bringup", "kernel", "fpu"}
+APPLICATIONS = {"bringup", "kernel", "fpu", "stress"}
 PAYLOAD = {".config", "zephyr.elf", "zephyr.bin", "zephyr.map", "zephyr.dts",
            "compile_commands.json", "build-provenance.json", "west-frozen.yml",
            "boot-contract.md", "validation.md", "patches/README.md", "patches/series.json"}
 LOGS = {"twister.json", "testplan.json", "twister.xml", "twister_report.xml",
-        "twister_suite_report.xml", "handler.log", "build.log", "twister.log", "probes.json", "missing-signal.log", "frozen-cpu.log"}
+        "twister_suite_report.xml", "handler.log", "build.log", "twister.log", "probes.json", "missing-signal.log", "frozen-cpu.log",
+        "stress-mil.log", "stress-fpu.log", "stress-timer.log", "stress-peer.log"}
 EXPECTED_OUTPUT = {
     "bringup": "BRINGUP: thread/semaphore/timeout PASS",
     "kernel": "TESTSUITE artinchip_kernel succeeded",
-    "fpu": "TESTSUITE artinchip_fpu succeeded"}
+    "fpu": "TESTSUITE artinchip_fpu succeeded",
+    "stress": "Z0-STRESS PASS"}
 # Explicit acceptance inventory for the pinned project tests. A reduced suite
 # must not become a pass simply by retaining each scenario name once.
 CASE_SUFFIXES = {
@@ -28,6 +30,9 @@ CASE_SUFFIXES = {
                                "timer_spin_yield", "timeout", "thread_semaphore",
                                "module")),
     "artinchip.fpu": (".artinchip_fpu.context_registers",),
+    # Console-harness application: the single testcase identifier is the scenario
+    # name itself, and its pass line is checked by the harness regex.
+    "artinchip.z0_stress": ("",),
     **{"artinchip.clic." + mode: tuple(".clic_mmio." + name for name in
                                       ("irq_edges_enable_pending_shv", "invalid_width",
                                        "level_clamp", "priority_widths", "layout_and_threshold"))
@@ -65,7 +70,8 @@ def check_suite(data, runtime):
     if len({s["name"] for s in suites}) != len(suites):
         raise ValueError("duplicate Twister scenario")
     selected = [s for s in suites if s["status"] != "filtered"]
-    expected = {"artinchip.bringup", "artinchip.kernel", "artinchip.fpu"}
+    expected = {"artinchip.bringup", "artinchip.kernel", "artinchip.fpu",
+                "artinchip.z0_stress"}
     if runtime:
         expected |= {"artinchip.bringup.no_assert", "artinchip.clic.legacy",
                      "artinchip.clic.generic", "artinchip.clic.nuclei"}
@@ -85,10 +91,24 @@ def check_suite(data, runtime):
             raise ValueError("unexpected Twister testcase inventory")
 
 
+STRESS_FAILURES = {"mil": "mil_violation", "fpu": "voluntary_context_mismatch",
+                   "timer": "timer_isr", "peer": "peer_preemption_missed"}
+
+
 def check_probes(probes):
     if (probes["status"] != "PASS" or probes["missing_signal"]["exit_code"] == 0 or
             probes["frozen_cpu"]["exit_code"] != 124 or not probes["frozen_cpu"]["timed_out"]):
         raise ValueError("negative runtime probes did not meet their failure expectations")
+    # Every stress watchdog path must have been seen failing on purpose: a
+    # missing or silent mode would otherwise read as "no bug".
+    injections = probes.get("stress_injections")
+    if isinstance(injections, dict) is False or set(injections) != set(STRESS_FAILURES):
+        raise ValueError("stress fault-injection probes are incomplete")
+    for mode, reason in STRESS_FAILURES.items():
+        result = injections[mode]
+        if (result["exit_code"] == 0 or result["timed_out"] or result["claims_pass"] or
+                result["reason"] != reason):
+            raise ValueError(f"stress {mode} injection probe did not fail as expected")
 
 
 def candidate_index(application, manifest):

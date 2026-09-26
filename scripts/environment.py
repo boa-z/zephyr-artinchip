@@ -34,6 +34,18 @@ def git_identity(path):
             "head_error": head["stderr"] if head["code"] else None}
 
 
+def qemu_executable(sdk):
+    """SDK-bundled QEMU first, then the host package: Linux SDK bundles vary."""
+    suffix = ".exe" if os.name == "nt" else ""
+    candidates = ([sdk / f"hosttools/qemu/qemu-system-riscv32{suffix}",
+                   sdk / "hosttools/qemu/bin/qemu-system-riscv32"] if sdk else [])
+    candidates.append(Path(shutil.which("qemu-system-riscv32") or "qemu-system-riscv32"))
+    for path in candidates:
+        if path.is_file():
+            return path
+    return candidates[-1]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sdk", type=Path, default=os.environ.get("ZEPHYR_SDK_INSTALL_DIR"))
@@ -52,8 +64,7 @@ def main():
     if sdk:
         for name, path in {
             "gcc": sdk / f"gnu/riscv64-zephyr-elf/bin/riscv64-zephyr-elf-gcc{suffix}",
-            "qemu": sdk / (f"hosttools/qemu/qemu-system-riscv32{suffix}" if os.name == "nt"
-                           else "hosttools/qemu/bin/qemu-system-riscv32"),
+            "qemu": qemu_executable(sdk),
         }.items():
             report["tools"][name] = run([str(path), "--version"])
             if report["tools"][name]["code"]:

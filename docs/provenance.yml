@@ -1609,6 +1609,18 @@ files:
   dependencies:
   - Pinned Zephyr APIs/build system
   review_status: reviewed
+- path: scripts/window_fit.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: Offline experimental-window and build-profile check reusing the packager's
+    structural validator, so CI can confirm the 600 s profile and the 64 KiB window
+    without a product reference image.
+  dependencies:
+  - scripts/package_gate_trial.py
+  review_status: reviewed
 handoff_reset_decoder_references:
   usage: Reference-only for docs/bringup/d13x-product-image-evidence.md; no source copied
   license: Apache-2.0 in referenced files
