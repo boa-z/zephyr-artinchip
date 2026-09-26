@@ -444,3 +444,44 @@ C:/aic-z0-kernel-window-v11（干净树），文件 38872 字节，RAM 51936/655
 特别保留扩展的 KERNEL-TICKDBG 行（含 clic_info/cfg/timer_ctrl、
 mtvec/medeleg/mideleg）与 numint 断言结果。
 第十轮 hardware_validation=pending。
+
+## 第十轮实板结果：线路与驱动完全一致，静态侧收敛完毕
+
+用户回传日志对应第十轮镜像（38560 字节 payload）。9 项中 4 项通过，
+5 项复现失败签名；numint 当场断言 144 通过（活体验证成立）。
+原始日志见 artifacts/z0-kernel-r10-board-result/board-log.txt，摘要见
+同目录 user-result.json。恢复待确认。
+
+- timer_ctrl=1fc00101：IP=1、IE=1、ATTR=0xC0（mode=3、shv=0、trg=0，
+  与驱动写入完全一致）、CTRL=0x1F（与驱动公式 pri=0/nlbits=0/
+  intctlbits=3 的计算值一致）。
+- clic_info=00600090（与 owner 上报一致）、clic_cfg=00000001
+  （nlbits=0 如驱动所写，保留位 bit0 为复位值 1）。
+- mtvec=40000383（_isr_wrapper 加 CLIC 向量模式位），
+  medeleg=mideleg=0（无委托）。
+- 线程上下文（含 wfi 穿过）依旧零 trap；阻塞即恢复。
+
+分析结论：可读寄存器的驱动假设与线路实际值全部一致，无失配。
+静态配置侧收敛完毕；剩余未知是阈值/电平动态态（MIL/MPIL）。
+
+## 第十一轮诊断：MINTSTATUS 只读与三点 MIL（待实板）
+
+冻结项（本轮及后续均不得动）：timer frequency、mtimecmp 算法、
+等待预算、线程优先级、WFI 行为。一次只改一个变量；不扩展
+CAN/display/FPU；每轮真机保留可恢复镜像与完整串口日志。
+
+- 新增 MINTSTATUS（CSR 0x346）只读采样。编号经 SDK 取名函数
+  __get_MINTSTATUS 与上游 nuclei_csr.h CSR_MINTSTATUS 双重佐证；
+  用数字形式组装以兼容所有汇编器。如 0x347 一样 fault，
+  则 MIL 通路不存在——该结局本身即答案，需复位并烧回原版。
+- 记录三点 MIL：preflight 前后（KERNEL-CSR 行增 before/after_mil）、
+  timer arm 前（TICKDBG 增 pre_mil）、CLIC IP=1 失败后（TICKDBG 增
+  exit_mil）。MCAUSE.MPIL 按板级试验规则取顶字节并与原始值同行打印，
+  版图未在库内验证，以原始值为准。
+- 用例清单保持 9 项不变；QEMU 下填零。
+
+后续决策树（ descope 到单变量步进）：
+若失败时 MIL=0xFF 或非零阻塞电平，下一轮只分析 Zephyr CLIC ISR
+save/restore/MRET 路径；若 MIL=0，下一轮才把 CLICCFG 从当前
+nlbits=0 切换到 ArtInChip SDK 的 nlbits=intctlbits=3，保持 SHV=0
+不变；两条均排除后，才设计 MTVT 加 SHV=1 的 E907 硬件向量适配器。

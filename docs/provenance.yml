@@ -856,10 +856,20 @@ files:
     pending.
   rights_holders:
   - Project contributors
-  changes: New implementation; not a copied SDK runtime.
+  changes: New implementation; not a copied SDK runtime. Read-only sampling uses
+    the MINTSTATUS CSR name and number only; no SDK code is included.
   dependencies:
   - Pinned Zephyr APIs/build system
   review_status: reviewed
+  sources:
+  - project: local D50T SDK read-only reference
+    revision: 0ac5adf01f6c5e7f60f3e5b37c56076cbd09c29b
+    path: bsp/artinchip/sys/d13x/include/csi_rv32_gcc.h
+    sha256: a4c18b9ff3a28c93052d16b8f63aa2a1880fef329f8a40e726ee4b4801ac3ca1
+  - project: zephyrproject-rtos/zephyr
+    revision: 839728050444f90d06870b5fc9bbbda106d91459
+    path: arch/riscv/custom/nuclei/nuclei_csr.h
+    note: CSR_MINTSTATUS 0x346 number corroboration only; no Nuclei code used
 - path: tests/kernel/tests.yaml
   kind: new
   license: Apache-2.0

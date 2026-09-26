@@ -34,6 +34,7 @@ struct poll_snapshot {
 	int64_t ticks;
 	uint32_t mstatus;
 	uint32_t mcause;
+	unsigned long mil;
 };
 
 /* Raw timer/pending sampling for the D13x board trial. Values are
@@ -55,6 +56,37 @@ static uint8_t clic_ip_now(void)
 }
 #endif
 
+/* MINTSTATUS (CSR 0x346) raw read. Number corroborated by the SDK
+ * accessor name (csi_rv32_gcc.h __get_MINTSTATUS) and upstream
+ * nuclei_csr.h CSR_MINTSTATUS; numeric form assembles everywhere.
+ * Like CSR 0x347 it may trap Illegal instruction if unimplemented:
+ * that outcome is itself the answer (MIL path absent).
+ */
+#if defined(CONFIG_SOC_SERIES_D13X)
+static unsigned long read_mintstatus(void)
+{
+	unsigned long value = 0;
+
+	__asm__ volatile("csrr %0, 0x346" : "=r"(value));
+	return value;
+}
+#endif
+
+/* Board-trial rule fields (user-supplied E907 convention: 0xFF blocks):
+ * top bytes of MINTSTATUS/MCAUSE. Layout not verified against TRM
+ * in-repo; raw values are printed alongside so any layout stays
+ * re-derivable offline.
+ */
+static unsigned long mil_of(unsigned long mintstatus)
+{
+	return (mintstatus >> 24) & 0xFFU;
+}
+
+static unsigned long mpil_of(unsigned long mcause)
+{
+	return (mcause >> 24) & 0xFFU;
+}
+
 struct tick_regs {
 	uint64_t mtime;
 	uint64_t mtimecmp;
@@ -64,6 +96,7 @@ struct tick_regs {
 	unsigned long mtvec;
 	unsigned long medeleg;
 	unsigned long mideleg;
+	unsigned long mil;
 	int irq_enabled;
 	uint8_t clic_ip;
 	uint8_t clic_ie;
@@ -75,7 +108,7 @@ struct tick_regs {
 
 static struct tick_regs tick_regs_get(void)
 {
-	struct tick_regs regs = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	struct tick_regs regs = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 #if defined(CONFIG_SOC_SERIES_D13X)
 	volatile uint32_t *mtime =
@@ -107,6 +140,7 @@ static struct tick_regs tick_regs_get(void)
 	regs.mtvec = csr_read(mtvec);
 	regs.medeleg = csr_read(medeleg);
 	regs.mideleg = csr_read(mideleg);
+	regs.mil = read_mintstatus();
 	regs.irq_enabled = irq_is_enabled(timer_irq);
 	regs.clic_ip = sys_read8(clic_ip);
 	regs.clic_ie = sys_read8(clic_ip + 1U);
@@ -120,11 +154,12 @@ static struct tick_regs tick_regs_get(void)
 
 static struct poll_snapshot poll_snapshot_get(void)
 {
-	struct poll_snapshot result = {0};
+	struct poll_snapshot result = {0, 0, 0, 0, 0};
 
 #if defined(CONFIG_SOC_SERIES_D13X)
 	result.mstatus = csr_read(mstatus);
 	result.mcause = csr_read(mcause);
+	result.mil = read_mintstatus();
 #endif
 	result.cycles = k_cycle_get_32();
 	result.ticks = k_uptime_ticks();
@@ -164,8 +199,12 @@ static bool wait_for_worker(void)
 	       (long long)(after.ticks - before.ticks), after.cycles - before.cycles);
 #if defined(CONFIG_SOC_SERIES_D13X)
 	printk("KERNEL-CSR before_mstatus=%08x after_mstatus=%08x "
-	       "before_mcause=%08x after_mcause=%08x\n",
-	       before.mstatus, after.mstatus, before.mcause, after.mcause);
+	       "before_mcause=%08x after_mcause=%08x "
+	       "before_mil=%08lx after_mil=%08lx "
+	       "before_mpil=%02lx after_mpil=%02lx\n",
+	       before.mstatus, after.mstatus, before.mcause, after.mcause,
+	       before.mil, after.mil,
+	       mpil_of(before.mcause), mpil_of(after.mcause));
 #endif
 	return woke;
 }
@@ -247,6 +286,8 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 	const char *reason = "iterations";
 
 	atomic_clear(&isr_probe_count);
+	/* MIL strictly before the arm: the arm itself must not move it. */
+	struct tick_regs pre_arm = tick_regs_get();
 	k_timer_start(&isr_probe_timer, K_MSEC(5), K_MSEC(5));
 	struct tick_regs armed = tick_regs_get();
 	for (uint32_t spins = 0; spins < 10000000U; spins++) {
@@ -276,14 +317,16 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 	       "exit_irqen=%d exit_clic_ip=%u exit_clic_ie=%u exit_clic_mth=%08x "
 	       "exit_mcause=%08lx exit_mtvec=%08lx exit_medeleg=%08lx "
 	       "exit_mideleg=%08lx exit_clic_info=%08x exit_clic_cfg=%08x "
-	       "exit_timer_ctrl=%08x\n",
+	       "exit_timer_ctrl=%08x pre_mil=%08lx pre_mpil=%02lx "
+	       "exit_mil=%08lx exit_mpil=%02lx\n",
 	       (unsigned long long)armed.mtime, (unsigned long long)armed.mtimecmp,
 	       (unsigned long long)at_exit.mtime, (unsigned long long)at_exit.mtimecmp,
 	       at_exit.mip, at_exit.mie, at_exit.irq_enabled,
 	       at_exit.clic_ip, at_exit.clic_ie, at_exit.clic_mth,
 	       at_exit.mcause, at_exit.mtvec, at_exit.medeleg,
 	       at_exit.mideleg, at_exit.clic_info, at_exit.clic_cfg,
-	       at_exit.timer_ctrl);
+	       at_exit.timer_ctrl, pre_arm.mil, mpil_of(pre_arm.mcause),
+	       at_exit.mil, mpil_of(at_exit.mcause));
 #if defined(CONFIG_SOC_SERIES_D13X)
 	/* Live validation of the 144-slot premise behind the diagnostic build. */
 	zassert_equal(at_exit.clic_info & 0x1FFFU, 144U, "CLIC numint mismatch");
