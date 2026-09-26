@@ -402,3 +402,33 @@ C:/aic-z0-kernel-window-v10（干净树），文件 38560 字节，RAM 51616/655
 特别保留 KERNEL-WFIPROBE pre/post 行。
 若日志止于 stage=pre ip=1 即为 wfi 未唤醒：保存日志，复位并烧回原版。
 第九轮 hardware_validation=pending。
+
+## 第九轮实板结果：wfi 直接穿过，等待态假说已死
+
+用户回传日志对应第九轮镜像。8 项旧用例复现既有签名；wfi 判决实验：
+`stage=pre ip=1` 后出现 `stage=post woke=1 count=0 cmp_changed=0`，
+tick_delta=6、cycle_delta=22068——wfi 本身基本没睡（增量主要来自前后
+两次串口打印），无 trap、无 ISR，直接穿过。原始日志见
+artifacts/z0-kernel-r9-board-result/board-log.txt，摘要见同目录
+user-result.json。恢复待确认。
+
+分析结论：IP=1/IE=1/MIE=1/mth=0 下，连 wfi 都不 trap 也不睡。
+等待态不够，wfi 假说已死。结合代码核查：
+arch_cpu_idle 只是 wfi 加解锁，switch 无 CSR/重挂载动作，
+idle 入口在此内核版本无重挂载（裸 wfi），而切换路径经 timeslice
+超时（1 tick）本就不断重挂载比较器——第八轮的持续重挂载亦未解蔽，
+故重挂载解冻假说已死。剩余未验证的静态事实只有驱动假设与线路
+实际值是否一致。
+
+## 第十轮诊断：CLIC 线路状态回读（待实板）
+
+- KERNEL-TICKDBG 追加无副作用读数：CLICINFO（0x4）、CLICCFG（0x0）、
+  定时器整 32 位 ctrl 字（IP/IE/ATTR/CTRL），以及标准 CSR
+  mtvec/medeleg/mideleg。版图与已交付驱动头一致；不读任何非标准
+  CSR（第六轮教训），不碰 mnxti（读副作用）。
+- 判读：info_numint（低 13 位）当场断言 144，活体验证 144 槽前提；
+  cfg_nlbits/ctrl 实际值对照驱动假设（nlbits=0、intctrl=0x1F、
+  attr mode=3）；mth 恒 0 已知；mtvec 应为 _isr_wrapper 加 CLIC
+  向量模式位；medeleg/mideleg 应为 0。任一失配即驱动与线路不符，
+  是中断投递失败的直接候选。
+- 用例清单保持 9 项不变；QEMU 下填零。

@@ -61,15 +61,21 @@ struct tick_regs {
 	unsigned long mip;
 	unsigned long mie;
 	unsigned long mcause;
+	unsigned long mtvec;
+	unsigned long medeleg;
+	unsigned long mideleg;
 	int irq_enabled;
 	uint8_t clic_ip;
 	uint8_t clic_ie;
 	uint32_t clic_mth;
+	uint32_t clic_info;
+	uint32_t clic_cfg;
+	uint32_t timer_ctrl;
 };
 
 static struct tick_regs tick_regs_get(void)
 {
-	struct tick_regs regs = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+	struct tick_regs regs = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 #if defined(CONFIG_SOC_SERIES_D13X)
 	volatile uint32_t *mtime =
@@ -98,10 +104,16 @@ static struct tick_regs tick_regs_get(void)
 	regs.mip = csr_read(mip);
 	regs.mie = csr_read(mie);
 	regs.mcause = csr_read(mcause);
+	regs.mtvec = csr_read(mtvec);
+	regs.medeleg = csr_read(medeleg);
+	regs.mideleg = csr_read(mideleg);
 	regs.irq_enabled = irq_is_enabled(timer_irq);
 	regs.clic_ip = sys_read8(clic_ip);
 	regs.clic_ie = sys_read8(clic_ip + 1U);
 	regs.clic_mth = sys_read32(DT_REG_ADDR(DT_INST(0, riscv_clic)) + 0x8U);
+	regs.clic_info = sys_read32(DT_REG_ADDR(DT_INST(0, riscv_clic)) + 0x4U);
+	regs.clic_cfg = sys_read32(DT_REG_ADDR(DT_INST(0, riscv_clic)) + 0x0U);
+	regs.timer_ctrl = sys_read32(clic_ip);
 #endif
 	return regs;
 }
@@ -262,12 +274,20 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 	printk("KERNEL-TICKDBG schema=1 armed_mtime=%llu armed_cmp=%llu "
 	       "exit_mtime=%llu exit_cmp=%llu exit_mip=%08lx exit_mie=%08lx "
 	       "exit_irqen=%d exit_clic_ip=%u exit_clic_ie=%u exit_clic_mth=%08x "
-	       "exit_mcause=%08lx\n",
+	       "exit_mcause=%08lx exit_mtvec=%08lx exit_medeleg=%08lx "
+	       "exit_mideleg=%08lx exit_clic_info=%08x exit_clic_cfg=%08x "
+	       "exit_timer_ctrl=%08x\n",
 	       (unsigned long long)armed.mtime, (unsigned long long)armed.mtimecmp,
 	       (unsigned long long)at_exit.mtime, (unsigned long long)at_exit.mtimecmp,
 	       at_exit.mip, at_exit.mie, at_exit.irq_enabled,
 	       at_exit.clic_ip, at_exit.clic_ie, at_exit.clic_mth,
-	       at_exit.mcause);
+	       at_exit.mcause, at_exit.mtvec, at_exit.medeleg,
+	       at_exit.mideleg, at_exit.clic_info, at_exit.clic_cfg,
+	       at_exit.timer_ctrl);
+#if defined(CONFIG_SOC_SERIES_D13X)
+	/* Live validation of the 144-slot premise behind the diagnostic build. */
+	zassert_equal(at_exit.clic_info & 0x1FFFU, 144U, "CLIC numint mismatch");
+#endif
 	zassert_true(count >= 20, "no timer-ISR expiry observed while spinning");
 }
 
