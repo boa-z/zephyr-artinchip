@@ -200,3 +200,41 @@ C:/aic-z0-kernel-window-v5（干净树），文件 36224 字节，RAM 47728/6553
 打包器按第四轮 ELF/BIN 固定哈希验证（提交 68d1ede），篡改负检查拒绝。
 使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
 特别保留 KERNEL-TICKDBG 行。第四轮 hardware_validation=pending。
+
+## 第四轮实板结果：失败，挂载正确但比较器原地不动
+
+用户回传日志对应 36224 字节 payload（与 zephyr.bin 一致），Zephyr build
+839728050444。SPL 头部截断，身份以 payload 尺寸加操作上下文关联；串口未
+回报镜像 SHA-256。原始日志见
+artifacts/z0-kernel-tickdbg-board-result/board-log.txt，摘要见同目录
+user-result.json。恢复待用户确认。
+
+- Preflight 与四项阻塞测试通过，耗时与前轮一致；mstatus=0x88。
+- test_timer_isr_delivery 在 main.c:236 失败：
+  `reason=cycles count=0 tick_delta=1000 cycle_delta=4000006`，且
+  `armed_mtime=1680301 armed_cmp=1688000 exit_mtime=5680289
+  exit_cmp=1688000 exit_mip=00000000 exit_mie=00000000 exit_irqen=1`。
+- test_timer_preemption 在 main.c:253 复现失败，签名与上轮一致。
+
+分析结论（板上实测，不外推硬件语义）：
+
+1. 内核挂载正确：armed_cmp 大于 armed_mtime，差值 7699 周期合理。
+2. 计数器以配置的 4 MHz 速率推进，1 秒内超出比较器约 400 万周期；
+   比较器数值原地不动（无 ISR 改写），零到期、mcause 不变故零 trap。
+3. 同一固件、同一地址、同一使能下，线程一旦阻塞定时器 ISR 即到：
+   差异是动态的“自旋 vs 阻塞”，不是静态配置。
+4. CLIC 使能位读数为开（irqen=1），MIE 置位；mip/mie 读零在 CLIC
+   模式下不作语义断言，仅作原始记录。
+
+## 第五轮诊断：yield 行为位与 CLIC pending 直读（待实板）
+
+- 新增 `test_timer_spin_yield`：同样挂 5 ms k_timer，自旋每 1000 次
+  k_yield（进内核切换路径，永不阻塞），打印 KERNEL-SPINPROBE。
+  若其通过而纯自旋失败，指向切换路径的重挂/解蔽；若同样失败，
+  剩余差异为阻塞/wfi。无裸 wfi，故无挂死风险。
+- KERNEL-TICKDBG 追加 exit_clic_ip/exit_clic_ie/exit_clic_mth：
+  定时器 IRQ 的 CLIC pending/m使能字节与阈值字直读，版图与已交付
+  驱动头一致。IP=1 且 count=0 为“CLIC 已见 pending 但未 trap”；
+  IP=0 为“比较器输出未到达 CLIC”。
+- 用例清单增至 7 项（evidence.py 与主机测试同步）；QEMU 下采样
+  填零、不影响判定。

@@ -44,17 +44,27 @@ struct tick_regs {
 	unsigned long mip;
 	unsigned long mie;
 	int irq_enabled;
+	uint8_t clic_ip;
+	uint8_t clic_ie;
+	uint32_t clic_mth;
 };
 
 static struct tick_regs tick_regs_get(void)
 {
-	struct tick_regs regs = {0, 0, 0, 0, 0};
+	struct tick_regs regs = {0, 0, 0, 0, 0, 0, 0, 0};
 
 #if defined(CONFIG_SOC_SERIES_D13X)
 	volatile uint32_t *mtime =
 		(uint32_t *)DT_REG_ADDR_BY_NAME(DT_INST(0, riscv_machine_timer), mtime);
+	uint32_t timer_irq = DT_IRQN(DT_INST(0, riscv_machine_timer));
 	volatile uint32_t *mtimecmp = (uint32_t *)(DT_REG_ADDR_BY_NAME(
 		DT_INST(0, riscv_machine_timer), mtimecmp) + arch_proc_id() * 8);
+	/* CLIC byte layout mirrors drivers/interrupt_controller/intc_clic.h
+	 * (union CLICCTRL: IP, IE, ATTR, CTRL at 0x1000 + 4*irq) and the MTH
+	 * word at offset 0x8: the same values the shipped driver uses.
+	 */
+	uintptr_t clic_ip = DT_REG_ADDR(DT_INST(0, riscv_clic)) + 0x1000U +
+			    (uintptr_t)timer_irq * 4U;
 	uint32_t hi, lo;
 
 	do {
@@ -69,7 +79,10 @@ static struct tick_regs tick_regs_get(void)
 	regs.mtimecmp = ((uint64_t)hi << 32) | lo;
 	regs.mip = csr_read(mip);
 	regs.mie = csr_read(mie);
-	regs.irq_enabled = irq_is_enabled(DT_IRQN(DT_INST(0, riscv_machine_timer)));
+	regs.irq_enabled = irq_is_enabled(timer_irq);
+	regs.clic_ip = sys_read8(clic_ip);
+	regs.clic_ie = sys_read8(clic_ip + 1U);
+	regs.clic_mth = sys_read32(DT_REG_ADDR(DT_INST(0, riscv_clic)) + 0x8U);
 #endif
 	return regs;
 }
@@ -229,11 +242,53 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 	       (long long)(after.ticks - before.ticks), after.cycles - before.cycles);
 	printk("KERNEL-TICKDBG schema=1 armed_mtime=%llu armed_cmp=%llu "
 	       "exit_mtime=%llu exit_cmp=%llu exit_mip=%08lx exit_mie=%08lx "
-	       "exit_irqen=%d\n",
+	       "exit_irqen=%d exit_clic_ip=%u exit_clic_ie=%u exit_clic_mth=%08x\n",
 	       (unsigned long long)armed.mtime, (unsigned long long)armed.mtimecmp,
 	       (unsigned long long)at_exit.mtime, (unsigned long long)at_exit.mtimecmp,
-	       at_exit.mip, at_exit.mie, at_exit.irq_enabled);
+	       at_exit.mip, at_exit.mie, at_exit.irq_enabled,
+	       at_exit.clic_ip, at_exit.clic_ie, at_exit.clic_mth);
 	zassert_true(count >= 20, "no timer-ISR expiry observed while spinning");
+}
+
+ZTEST(artinchip_kernel, test_timer_spin_yield)
+{
+	/* Same 5 ms k_timer, but the spin calls k_yield() every 1000
+	 * iterations: the thread never blocks, yet the kernel switch path
+	 * runs. A passing count here while the plain spin fails implicates
+	 * the switch path (re-arm/unmask); an identical failure leaves
+	 * block/wfi as the remaining differentiator. Bounded like the rest.
+	 */
+	struct poll_snapshot before = poll_snapshot_get();
+	uint32_t start = before.cycles;
+	uint32_t budget = k_ms_to_cyc_ceil32(1000);
+	const char *reason = "iterations";
+
+	atomic_clear(&isr_probe_count);
+	k_timer_start(&isr_probe_timer, K_MSEC(5), K_MSEC(5));
+	for (uint32_t spins = 0; spins < 10000000U; spins++) {
+		if (atomic_get(&isr_probe_count) >= 20) {
+			reason = "isr";
+			break;
+		}
+		if ((uint32_t)(k_cycle_get_32() - start) >= budget) {
+			reason = "cycles";
+			break;
+		}
+		if ((spins % 1000U) == 0U) {
+			k_yield();
+		}
+		compiler_barrier();
+	}
+	k_timer_stop(&isr_probe_timer);
+	/* Capture before printing: UART can change timing. */
+	struct poll_snapshot after = poll_snapshot_get();
+	unsigned int count = (unsigned int)atomic_get(&isr_probe_count);
+
+	printk("KERNEL-SPINPROBE schema=1 mode=yield reason=%s count=%u priority=%d "
+	       "tick_delta=%lld cycle_delta=%u\n", reason, count,
+	       k_thread_priority_get(k_current_get()),
+	       (long long)(after.ticks - before.ticks), after.cycles - before.cycles);
+	zassert_true(count >= 20, "no timer-ISR expiry observed while yielding");
 }
 
 ZTEST(artinchip_kernel, test_timer_preemption)
