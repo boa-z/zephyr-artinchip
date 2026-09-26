@@ -334,3 +334,23 @@ C:/aic-z0-kernel-window-v8（干净树），文件 37648 字节，RAM 50688/6553
 特别保留 KERNEL-SPINPROBE mode=switch 行与 KERNEL-TICKDBG 行
 （无 mintthresh 字段，保留 exit_mcause）。
 第七轮 hardware_validation=pending。
+
+## 第七轮实板结果：切换测试饿死挂起，属测试设计缺陷
+
+用户回传日志对应第七轮镜像（37648 字节 payload）。isr_delivery 与
+preemption 复现失败签名；TICKDBG 新增 exit_mcause=08000000（原始记录，
+不作语义断言），无 fault，mintthresh 删除生效。test_timer_spin_switch
+启动后无输出、板子卡住。原始日志见
+artifacts/z0-kernel-r7-board-result/board-log.txt，摘要见同目录
+user-result.json。板子需要复位并烧回原版镜像。
+
+根因（测试设计缺陷，非硬件新发现）：对等自旋线程永不让出；测试线程
+第一次 k_yield 即把 CPU 交给它，而同优先级时间片/抢占恰恰依赖已死
+的定时器 tick，于是测试线程永久饿死，预算永不到期。复盘：
+该挂起本身独立佐证了“线程运行时无定时器 ISR”（连时间片机制都停了）。
+
+## 第八轮诊断：对等线程同样让出（待实板）
+
+- switch_spinner 每 1000 次循环 k_yield：两线程自愿交替，不依赖
+  定时器 tick；测试线程的周期预算依然兜底。用例清单保持 8 项不变。
+- 判读不变：switch 通过则指向切换路径，不通过则剩余差异为阻塞/wfi。

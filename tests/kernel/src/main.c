@@ -300,13 +300,20 @@ ZTEST(artinchip_kernel, test_timer_spin_yield)
 
 /* Companion spinner at the same priority: forces real context switches
  * on k_yield (a lone thread never switches: do_swap skips identical threads).
+ * It must yield itself: same-priority timeslice/preemption needs the timer
+ * tick, so a never-yielding peer would starve the test thread forever.
  */
 static void switch_spinner(void *a, void *b, void *c)
 {
+	uint32_t spins = 0;
+
 	ARG_UNUSED(a);
 	ARG_UNUSED(b);
 	ARG_UNUSED(c);
 	while (!atomic_get(&switch_stop)) {
+		if ((spins++ % 1000U) == 0U) {
+			k_yield();
+		}
 		compiler_barrier();
 	}
 }
@@ -316,9 +323,11 @@ ZTEST(artinchip_kernel, test_timer_spin_switch)
 	/* Same 5 ms k_timer, but a same-priority peer forces genuine
 	 * ecall context switches on every k_yield: neither thread ever
 	 * blocks, yet the full switch path (timeslice reset, re-arm
-	 * evaluation) runs. Count growing here while plain spins fail
-	 * implicates the switch path; identical failure leaves block/wfi
-	 * as the remaining differentiator. Bounded like the rest.
+	 * evaluation) runs. The peer yields too, so the two alternate
+	 * voluntarily without needing the timer tick. Count growing here
+	 * while plain spins fail implicates the switch path; identical
+	 * failure leaves block/wfi as the remaining differentiator.
+	 * Bounded like the rest.
 	 */
 	int priority = k_thread_priority_get(k_current_get());
 	struct poll_snapshot before = poll_snapshot_get();
