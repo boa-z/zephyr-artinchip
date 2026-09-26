@@ -1621,6 +1621,30 @@ files:
   dependencies:
   - scripts/package_gate_trial.py
   review_status: reviewed
+- path: requirements-linux.lock
+  kind: new
+  license: Apache-2.0
+  license_basis: Original environment version listing; not the package source licenses.
+  rights_holders:
+  - Project contributors
+  changes: Windows lock mirrored verbatim for the Ubuntu runner (ubuntu-26.04)
+    minus the Windows-only curses wheel; its first execution of this exact set was
+    the Linux CI run, which passed end to end in run 36234634318, so the lock is
+    now executed rather than merely declared, while trimming stays deferred.
+  dependencies:
+  - requirements-windows.lock
+  review_status: reviewed
+- path: .github/workflows/ci-windows.yml
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project automation; repository LICENSE.
+  rights_holders:
+  - Project contributors
+  changes: Manual-dispatch-only Windows compatibility copy of the required Linux gate;
+    it never blocks a push or a pull request.
+  dependencies:
+  - Python and pinned Zephyr tooling
+  review_status: reviewed
 handoff_reset_decoder_references:
   usage: Reference-only for docs/bringup/d13x-product-image-evidence.md; no source copied
   license: Apache-2.0 in referenced files

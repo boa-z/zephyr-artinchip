@@ -5,11 +5,11 @@ permissions:
   contents: read
 jobs:
   software:
-    runs-on: windows-latest
-    timeout-minutes: 40
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
     defaults:
       run:
-        shell: pwsh
+        shell: bash
         working-directory: zephyr-artinchip
     steps:
       - uses: actions/checkout@v4
@@ -18,62 +18,108 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13.15'
+      - name: Install host packages
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/r1-logs
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            cmake ninja-build device-tree-compiler xz-utils file qemu-system-riscv
+          command -v qemu-system-riscv32 >/dev/null || {
+            echo "FATAL: qemu-system-riscv32 is not on PATH after installing" \
+              "qemu-system-riscv; check the package name and its file list." >&2
+            exit 1
+          }
+          {
+            cmake --version
+            ninja --version
+            dtc --version
+            xz --version
+            file --version
+            qemu-system-riscv32 --version
+            python --version
+            python -c 'import sys; print(sys.executable, sys.version)'
+          } > artifacts/r1-logs/host-packages.log
+          cat artifacts/r1-logs/host-packages.log
+          # The pinned Zephyr revision composes -cpu from devicetree ('rv32i' plus
+          # zkr); an emulator without that model makes every scenario die as an
+          # empty 'unexpected eof' instead of failing with a reason.
+          qemu-system-riscv32 -cpu help > artifacts/r1-logs/qemu-cpu-models.log
+          grep -qw rv32i artifacts/r1-logs/qemu-cpu-models.log || {
+            echo "FATAL: host QEMU offers no 'rv32i' CPU model; the pinned" \
+              "Zephyr revision needs a newer emulator than this host package." >&2
+            exit 1
+          }
       - name: Bootstrap pinned workspace
         run: |
-          New-Item -ItemType Directory -Force artifacts/r1-logs | Out-Null
-          Start-Transcript -Path artifacts/r1-logs/bootstrap.log
-          python -m pip install -r requirements-windows.lock
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          west init -l .
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          west update
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          python scripts/apply_patches.py
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          west manifest --validate
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -r requirements-linux.lock \
+            2>&1 | tee artifacts/r1-logs/pip-install.log
+          west init -l . 2>&1 | tee artifacts/r1-logs/west-init.log
+          west update 2>&1 | tee artifacts/r1-logs/west-update.log
+          python scripts/apply_patches.py 2>&1 | tee artifacts/r1-logs/apply-patches.log
+          west manifest --validate 2>&1 | tee artifacts/r1-logs/manifest-validate.log
       - name: Lint, source provenance and host tests
         run: |
-          Start-Transcript -Path artifacts/r1-logs/host-gates.log
-          python scripts/lint.py
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          python scripts/check_provenance.py
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          python -m unittest discover -s tests/host -v *> artifacts/r1-logs/host-tests.log
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          set -euo pipefail
+          python scripts/lint.py 2>&1 | tee artifacts/r1-logs/lint.log
+          python scripts/check_provenance.py 2>&1 | tee artifacts/r1-logs/provenance.log
+          python -m unittest discover -s tests/host -v 2>&1 \
+            | tee artifacts/r1-logs/host-tests.log
       - name: Install checksummed RISC-V SDK
         run: |
-          Start-Transcript -Path artifacts/r1-logs/sdk-install.log
-          python scripts/install_sdk.py "$env:RUNNER_TEMP/aic-sdk"
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          "ZEPHYR_SDK_INSTALL_DIR=$env:RUNNER_TEMP/aic-sdk/zephyr-sdk-1.0.1" >> $env:GITHUB_ENV
+          set -euo pipefail
+          python scripts/install_sdk.py "$RUNNER_TEMP/aic-sdk" \
+            2>&1 | tee artifacts/r1-logs/sdk-install.log
+          echo "ZEPHYR_SDK_INSTALL_DIR=$RUNNER_TEMP/aic-sdk/zephyr-sdk-1.0.1" >> "$GITHUB_ENV"
       - name: QEMU runtime gate
         run: |
-          Start-Transcript -Path artifacts/r1-logs/qemu-gate.log
-          python scripts/environment.py --output artifacts/environment.json
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          west twister -p qemu_riscv32 -T samples/bringup -T tests/kernel -T tests/fpu -T tests/clic --board-root boards --outdir C:/aic-qemu --inline-logs -j4
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          set -euo pipefail
+          python scripts/environment.py --output artifacts/environment.json \
+            2>&1 | tee artifacts/r1-logs/environment.log
+          west twister -p qemu_riscv32 -T samples/bringup -T tests/kernel -T tests/fpu \
+            -T tests/clic -T tests/z0_stress --board-root boards \
+            --outdir "$RUNNER_TEMP/aic-qemu" --inline-logs -j4 \
+            2>&1 | tee artifacts/r1-logs/qemu-gate.log
       - name: Runtime negative probes
         run: |
-          python scripts/runtime_probes.py C:/aic-negative --sdk "$env:ZEPHYR_SDK_INSTALL_DIR" *> artifacts/r1-logs/runtime-probes.log
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          set -euo pipefail
+          python scripts/runtime_probes.py "$RUNNER_TEMP/aic-negative" \
+            --sdk "$ZEPHYR_SDK_INSTALL_DIR" 2>&1 | tee artifacts/r1-logs/runtime-probes.log
       - name: D13x build-only gate
         run: |
-          Start-Transcript -Path artifacts/r1-logs/d13x-gate.log
-          west twister -p d50t_2_lite/d133ecs -T samples/bringup -T tests/kernel -T tests/fpu --board-root boards --build-only --outdir C:/aic-d13x --inline-logs -j4
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          foreach ($application in @('bringup', 'kernel', 'fpu')) {
-            python scripts/build_candidate.py $application "C:/aic-$application" *> "artifacts/r1-logs/build-$application.log"
-            if ($LASTEXITCODE) { exit $LASTEXITCODE }
-            python scripts/package_candidate.py "C:/aic-$application" "artifacts/candidates/$application" *> "artifacts/r1-logs/collect-$application.log"
-            if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          }
+          set -euo pipefail
+          west twister -p d50t_2_lite/d133ecs -T samples/bringup -T tests/kernel \
+            -T tests/fpu -T tests/z0_stress --board-root boards --build-only \
+            --outdir "$RUNNER_TEMP/aic-d13x" --inline-logs -j4 \
+            2>&1 | tee artifacts/r1-logs/d13x-gate.log
+          for application in bringup kernel fpu stress; do
+            python scripts/build_candidate.py "$application" "$RUNNER_TEMP/aic-$application" \
+              2>&1 | tee "artifacts/r1-logs/build-$application.log"
+            python scripts/package_candidate.py "$RUNNER_TEMP/aic-$application" \
+              "artifacts/candidates/$application" 2>&1 \
+              | tee "artifacts/r1-logs/collect-$application.log"
+          done
+      - name: D13x stress hardware profile fits the experimental window
+        run: |
+          set -euo pipefail
+          west build -b d50t_2_lite/d133ecs tests/z0_stress \
+            --build-dir "$RUNNER_TEMP/aic-stress-window" --pristine -- \
+            -DEXTRA_CONF_FILE="$GITHUB_WORKSPACE/zephyr-artinchip/tests/z0_stress/product-window.conf" \
+            -DDTC_OVERLAY_FILE="$GITHUB_WORKSPACE/zephyr-artinchip/samples/handoff_probe/product-window.overlay" \
+            2>&1 | tee artifacts/r1-logs/stress-window-build.log
+          python scripts/window_fit.py "$RUNNER_TEMP/aic-stress-window/zephyr" \
+            --expect CONFIG_AIC_Z0_STRESS_DURATION_SEC=600 \
+            2>&1 | tee artifacts/r1-logs/stress-window-fit.log
       - name: Stage allowlisted success or failure evidence
         if: always()
         run: |
-          python scripts/evidence.py stage artifacts/transport/software-evidence.zip --status "${{ job.status }}" --qemu C:/aic-qemu --d13x C:/aic-d13x --candidates artifacts/candidates --logs artifacts/r1-logs --environment artifacts/environment.json --negative C:/aic-negative
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          set -euo pipefail
+          python scripts/evidence.py stage artifacts/transport/software-evidence.zip \
+            --status "${{ job.status }}" --qemu "$RUNNER_TEMP/aic-qemu" \
+            --d13x "$RUNNER_TEMP/aic-d13x" --candidates artifacts/candidates \
+            --logs artifacts/r1-logs --environment artifacts/environment.json \
+            --negative "$RUNNER_TEMP/aic-negative"
       - name: Upload single evidence archive
         if: always()
         uses: actions/upload-artifact@v4
@@ -90,5 +136,6 @@ jobs:
       - name: Verify downloaded inventory and hashes
         if: always()
         run: |
-          python scripts/evidence.py verify "$env:RUNNER_TEMP/aic-downloaded/software-evidence.zip"
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          set -euo pipefail
+          python scripts/evidence.py verify "$RUNNER_TEMP/aic-downloaded/software-evidence.zip" \
+            2>&1 | tee artifacts/r1-logs/evidence-verify.log

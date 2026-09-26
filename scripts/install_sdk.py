@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 import platform
 import subprocess
-import tarfile
 import urllib.request
 
 VERSION = "1.0.1"
@@ -47,11 +46,9 @@ def main():
         verified.append({"file": name, "sha256": digest, "url": BASE + name})
         target = dest if name == names[0] else sdk / "gnu"
         target.mkdir(parents=True, exist_ok=True)
-        if system == "windows":
-            subprocess.run(["tar", "-xf", str(archive), "-C", str(target)], check=True)
-        else:
-            with tarfile.open(archive) as bundle:
-                bundle.extractall(target, filter="data")
+        # System tar on both hosts: it is what the SDK's own setup script uses, so
+        # toolchain permission bits and symlinks land exactly as upstream intends.
+        subprocess.run(["tar", "-xf", str(archive), "-C", str(target)], check=True)
     (dest / "sdk-downloads.json").write_text(json.dumps(verified, indent=2) + "\n")
     print(sdk)
 
