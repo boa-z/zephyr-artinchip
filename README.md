@@ -2,11 +2,20 @@
 
 Community-maintained ArtInChip support as an out-of-tree Zephyr module and west
 manifest repository. Scope: P0 infrastructure and a D133ECS SRAM-only Z0 software
-candidate. **Z0 OPEN: three gate images have run on the board (kernel 9/9 once,
-FPU context matrix twice, thread-state MIL held at 0), but the 600 s sustained
-stress, the >=10 cold-boot repeats and the multi-round kernel repeat are still
-unlogged, and no image here is a shippable loadable container
-(`loadable_image: false`).**
+candidate. **Z0 CLOSED — hardware validated within Z0 scope: the four physical
+stability gate items PASS (kernel 9/9, the FPU context matrix, a 601.789 s
+sustained stress window, and >=10 independent cold boots of one candidate as
+owner-reported evidence), with thread-state MINTSTATUS.MIL held at 0 across
+2,333,061 logged heartbeat samples and zero FPU context failures, and the required
+Linux software gate green in Actions run 36235471896. That claim covers only E907 /
+CLIC, the machine timer, the scheduler, IRQ delivery and preemption, WFI, context
+switching, FPU sharing and sustained CPU/kernel stress inside the experimental
+0x40000000/64 KiB product window. It says nothing about the default SRAM layout,
+PSRAM/DMA/cache coherency, clock/reset/pinctrl, GPIO, CAN, display, GE/MPP or
+storage, and no image here is a shippable loadable container
+(`loadable_image: false`).** See
+`docs/bringup/d13x-z0-stability-gate.md` for the per-item board logs and the
+evidence split between archived logs and owner-reported repeats.
 
 ## Reproduce on Windows
 

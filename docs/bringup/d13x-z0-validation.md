@@ -1,16 +1,28 @@
 # Z0 validation procedure
 
-hardware_validation: pending **for the whole Z0 scope**. Partial physical
-evidence now exists and is recorded in `d13x-z0-stability-gate.md`: the
-heartbeat-instrumented kernel suite reached 9/9 on board and the FPU context
-matrix reached 1/1 with 5003+5004 peer preemptions, both with thread-state
-MINTSTATUS.MIL held at 0 (3 on-board boots total: FPU candidate 2, kernel
-candidate 1). Serial logs for those boots are kept in the local, gitignored
-`artifacts/z0-gate-*-board-result/` directories, so they travel with the
-delivery folder rather than the Git tree. Still NOT_RUN: the 600 s sustained
-stress candidate, the ≥10 independent cold boots, and the ≥5-round kernel
-repeat — no logs for those have been returned yet. QEMU results remain generic
-RISC-V results, not D13x results.
+hardware_validation: **verified within Z0 scope** (closed 2026-09-26). That scope is
+exactly: D133ECS boot inside the current experimental 0x40000000/64 KiB product
+window, E907/CLIC, machine timer, scheduler, IRQ delivery and preemption, WFI,
+context switch, FPU sharing, and sustained CPU/kernel stress. It is recorded in
+`d13x-z0-stability-gate.md`: the heartbeat-instrumented kernel suite reached 9/9 on
+board (1 archived round, and >=5 consecutive rounds as owner-reported evidence), the
+FPU context matrix reached 1/1 with 5003+5004 peer preemptions on 2 logged boots, and
+the dedicated 600 s stress candidate completed a 601.789 s window with
+`timer_isr=120360`, `fpu_a=fpu_b=90300`, `voluntary=180602`, `timeout_wakeups=28560`,
+`mil_samples=209162`, `mil_violations=0`, `mil_worst=00`, `fpu_failures=0`. The >=10
+independent cold boots are likewise **owner-observed hardware evidence**: the
+operator reports them, the repository archives 4 boots with serial logs (FPU 2,
+kernel 1, stress 1 excerpt), and no per-boot Reset flag was returned for the rest.
+Logs live in the local, gitignored `artifacts/z0-gate-*-board-result/` directories, so
+they travel with the delivery folder rather than the Git tree. QEMU results remain
+generic RISC-V results, not D13x results.
+
+Still **not** validated by this, and Z0 closure must not be read as covering them:
+default SRAM layout and product partition ownership, timer accuracy against an
+external timebase, PSRAM/DMA/cache coherency, clock/reset/pinctrl, GPIO, CAN,
+display, GE/MPP, storage, controlled diagnostic-exception capture, installed-loader
+RAM ownership and manual failure recovery (H0/H1 items stay BLOCKED/NOT_RUN), and
+upstream readiness. `loadable_image` stays false for every candidate here.
 
 ## Build and collect
 
@@ -28,7 +40,9 @@ paths). On Linux substitute a short local `/tmp` directory. **Linux is now the
 required CI host** (`ubuntu-26.04`, `requirements-linux.lock`; the runner was
 moved off `ubuntu-24.04` because that release's QEMU 8.2.2 has no `rv32i` CPU
 model for the devicetree-composed `-cpu`). Run 36234634318 is the first green
-run on that host, so that lock is now executed rather than merely declared.
+run on that host and run 36235471896 is green on the delivered Z0 baseline head
+`fee21ae`, so that lock is now executed rather than merely declared. CI carries
+no board: it contributes nothing to the four physical gate items.
 Board-specific test configs opt into the
 candidate boot contract; the SoC rejects builds that do not explicitly accept
 that contract. Build-only scenarios must never be counted as executed test
@@ -59,21 +73,26 @@ certification. Per-item status as of 2026-09-26 (see
 
 - Ten independent cold boots of the bringup sample. Expect module identity and
   `BRINGUP: thread/semaphore/timeout PASS`; also measure actual elapsed wall
-  time. **NOT_RUN** — the gate candidates have 3 logged on-board boots between
-  them (FPU 2, kernel 1); the bringup sample itself has not been cold-boot
-  repeated.
-- Sustained combined stress of at least ten minutes. **NOT_RUN, image
-  delivered.** The dedicated `tests/z0_stress` 600 s candidate
-  (`D50T_Z0_stress_gate.img`) is built, pinned and packaged; it observes
+  time. **PASS for the gate candidate (owner-reported)** — the operator reports
+  >=10 independent cold boots of one gate candidate, all completing normally; 4
+  boots have archived serial logs in this delivery (FPU 2, kernel 1, stress 1
+  excerpt) and no per-boot Reset flag was returned for the rest. The bringup
+  sample itself has still not been cold-boot repeated, so this line is satisfied
+  for the gate images only.
+- Sustained combined stress of at least ten minutes. **PASS (one 601.789 s
+  window)**. The dedicated `tests/z0_stress` 600 s candidate
+  (`D50T_Z0_stress_gate.img`) is built, pinned and packaged; on board it observed
   timer-driven preemption, peer FPU preemption, voluntary switches and blocking
-  wakeups continuously, prints a heartbeat every 5 s, and fails immediately when
-  any watched counter stalls. Repeating kernel (0.529 s) and FPU (12.3 s) suites
-  in a loop does **not** substitute for it, because neither runs long enough to
-  cover a stall that appears after the first seconds.
+  wakeups continuously, printed a heartbeat every 5 s, and would have ended with
+  the stalled counter's name as the FAIL reason. Repeating kernel (0.529 s) and
+  FPU (12.3 s) suites in a loop does **not** substitute for it, because neither
+  runs long enough to cover a stall that appears after the first seconds. One
+  window is a single-sample result, not a repeatability claim.
 - Kernel suite: thread handoff, semaphore timeout, timer-driven preemption and
-  an owned aligned memory buffer, with complete ztest summaries. **PARTIAL** —
-  9/9 PASS observed once on board with thread-state MIL held at 0
-  (2,101,657 samples); the requested ≥5-round repeat has no returned log.
+  an owned aligned memory buffer, with complete ztest summaries. **PASS** —
+  9/9 PASS observed on board with thread-state MIL held at 0 (2,101,657 samples,
+  log archived for that round) plus >=5 consecutive 9/9 rounds reported by the
+  operator, whose per-round logs were not returned.
 - FPU test loads distinct NaN-boxed f32 / finite f64 patterns into all 32 registers,
   checks fcsr and requires at least 5,000 verified peer preemptions per thread.
   Voluntary switches check ABI-preserved registers/fcsr 200 times. A phase barrier

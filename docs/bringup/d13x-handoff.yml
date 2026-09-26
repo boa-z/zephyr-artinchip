@@ -3,10 +3,29 @@ record_date: '2026-09-26'
 gate: Z0.H0
 status: BLOCKED
 hardware_validation: pending
-hardware_validation_detail: FPU context matrix closed on physical hardware (2/2 boots,
-  gate item 3); kernel 9/9 observed once with thread-state MIL held at 0; the 600 s sustained
-  stress candidate, the >=10 cold-boot repeats and the >=5-round kernel repeat still have no
-  returned log, so Z0 stays open and this field stays pending.
+z0_status: CLOSED
+z0_hardware_validation: verified within Z0 scope
+z0_scope: 'D133ECS boot in the current experimental product window, E907/CLIC, machine
+  timer, scheduler, IRQ delivery and preemption, WFI trap behaviour, context switch, FPU
+  sharing and sustained CPU/kernel stress. Nothing else. Explicitly not validated: default
+  SRAM layout, PSRAM/DMA coherency, clock/reset/pinctrl, GPIO, CAN, display, GE/MPP,
+  storage, and upstream readiness.'
+z0_closure_basis: 'Four stability gate items PASS: item 3 (FPU context, 2 logged boots) and
+  item 4 (601.789 s sustained stress window, log excerpt returned) from archived board logs;
+  item 1 (>=10 independent cold boots of one candidate) and item 2 (>=5 consecutive kernel
+  9/9 rounds) as owner-observed hardware evidence without per-run logs. Thread-state
+  MINTSTATUS.MIL held 0 across 2333061 logged heartbeat samples, fpu_failures=0, and the
+  original firmware was restored and confirmed booting afterwards.'
+z0_software_baseline: fee21ae9790ca51ca49282a8a1eaee083b976ffc
+z0_clic_baseline_commits: c0b15e9 + 4442a91 (frozen; no further CLIC/timer/WFI/nlbits/priority
+  change for Z0)
+z0_linux_ci_run: '36235471896 (ubuntu-26.04, all 18 steps success; first green run 36234634318
+  at 163269d documented in d13x-z0-stability-gate.md)'
+z0_baseline_marker: annotated tag d13x-z0-validated (no GitHub Release created; release approval is human)
+hardware_validation_detail: 'Z0 is closed as hardware validated within the scope above, but
+  this umbrella record stays BLOCKED/pending: H0/H1 loader RAM ownership and manual failure
+  recovery remain BLOCKED, cache maintenance and PSRAM/DMA/display coherency remain NOT_RUN,
+  and the standard candidates keep loadable_image=false. Closing Z0 does not move any H0 item.'
 loadable_image: false
 upstream_ready: 'no'
 items:
@@ -432,7 +451,7 @@ items:
   z0_kernel_gate_20260926:
     classification: observed
     observer: user-flashed image and user-returned serial log; not agent-operated hardware
-    status: PARTIAL
+    status: PASS
     value:
       image: D50T_Z0_kernel_gate.img
       image_sha256: bd76a8bb7eafd22fda4d2567c7c9417994af5efc2785318ecc9d90196f02597f
@@ -446,14 +465,39 @@ items:
       mil_violations: 0
       reset_flag: '0x501'
       boots_observed: 1
+      rounds_logged_in_repository: 1
+      rounds_owner_reported: '>=5 consecutive rounds at 9/9 with violations=0'
     evidence:
     - path: docs/bringup/d13x-z0-stability-gate.md
-    limits: Single round of the 9/9 suite inside the experimental 0x40000000/64 KiB
-      window with the 144-slot diagnostic profile. Image identity on board is size
-      plus operator context, because the serial log carries no SHA-256. Not the >=5-round
-      repeat the stability gate asks for, and no default-SRAM, timer-accuracy or
-      long-run claim.
-    required_evidence: Serial logs for the remaining gate rounds and cold-boot repeats.
+    limits: Gate item 2 closes on the owner's report of >=5 consecutive 9/9 rounds; only one
+      round has an archived serial log, so the remaining rounds are owner-observed hardware
+      evidence and must not be cited as logged or automated evidence. Everything here is inside
+      the experimental 0x40000000/64 KiB window with the 144-slot diagnostic profile, image
+      identity on board is size plus operator context (the serial log carries no SHA-256), and
+      there is no default-SRAM, timer-accuracy or long-run claim.
+    required_evidence: None outstanding for the gate verdict. Per-round serial logs for rounds
+      2..N would upgrade the owner-reported rounds to archived evidence.
+  z0_kernel_repeats_owner_20260926:
+    classification: owner_reported
+    observer: operator at the bench; no serial log returned for these runs
+    status: PASS
+    value:
+      gate_item: 1 (>=10 independent cold boots of one candidate) and 2 (>=5 consecutive kernel
+        9/9 rounds)
+      cold_boots_same_candidate: '>=10'
+      kernel_rounds_9_of_9: '>=5'
+      restore_after_stress: RESTORE_original_product.img burned back and original firmware
+        confirmed to boot normally
+    evidence:
+    - path: docs/bringup/d13x-z0-stability-gate.md
+    limits: Counts only, reported by the hardware owner. No per-boot Reset flag or wall time is
+      archived, which is exactly what gate item 1 asks each repeat to record, so this entry is
+      owner-observed evidence and not an independently reviewable log set. It is deliberately
+      kept separate from the logged kernel/FPU/stress entries so nobody reads 10 boots as 10
+      archived logs. The >=10 minute sustained window is a different item (z0_stress_gate_20260926),
+      and repeating the 0.529 s kernel suite is not a substitute for it.
+    required_evidence: Per-boot Reset flag and wall time if these repeats ever need to be
+      upgraded to archived evidence.
   z0_fpu_gate_20260926:
     classification: observed
     observer: user-flashed image and user-returned serial log; not agent-operated hardware
@@ -478,8 +522,9 @@ items:
       12.3 s runs are not the >=10 minute sustained window, and the second boot's reset
       reason stays an open cold-boot classification item.
   z0_stress_gate_20260926:
-    classification: analysis
-    status: NOT_RUN
+    classification: observed
+    observer: user-flashed image and user-returned serial log tail; not agent-operated hardware
+    status: PASS
     value:
       application: tests/z0_stress
       profile: CONFIG_AIC_Z0_STRESS_DURATION_SEC=600
@@ -487,18 +532,39 @@ items:
       image_sha256: eb06085f687b7a2d13ff1caac7d29c797c87db7bc0ba3b2f1abfa7d16137dba9
       elf_sha256: a9d485e1ff8afe90376b2af88c248f6484bccc9943d96ebdb30a0474c9953c8b
       bin_sha256: c0d7a411a47b6b4fe33442c5b892a4e509bad60ce377e2801b56e1332fe5939d
+      on_board_payload_bytes_declared: 30816
       ram_used_bytes: 44368
       window_bytes: 65536
       qemu_short_profile: 1/1 passed at 3 s (logic only)
       negative_probes: 'four QEMU injection builds failed as expected: mil_violation,
         voluntary_context_mismatch, timer_isr, peer_preemption_missed'
+      result: Z0-STRESS PASS / PROJECT EXECUTION SUCCESSFUL
+      runtime_ms: 601789
+      mtime_delta: 2407224191
+      timer_isr: 120360
+      fpu_a: 90300
+      fpu_b: 90300
+      voluntary_switch_checks: 180602
+      timeout_wakeups: 28560
+      mil_samples: 209162
+      mil_violations: 0
+      mil_worst: '00'
+      fpu_failures: 0
     evidence:
     - path: docs/bringup/d13x-z0-stability-gate.md
-    limits: Offline build, packaging and negative-path evidence only. The 600 s hardware
-      result is what gate item 4 needs and has not been produced; a QEMU 3 s run proves
-      nothing about E907 CLIC, FPU sharing or long-run stability.
-    required_evidence: Full 600 s serial log with per-5 s Z0-STRESS-HB lines, zero stalls,
-      mil_violations=0, fpu_failures=0 and Z0-STRESS PASS, plus post-run RESTORE confirmation.
+    limits: Closes gate item 4 as one continuous 601.789 s on-board window covering timer-driven
+      preemption, two-thread FPU time-slice preemption, voluntary context integrity, blocking
+      wakeups and thread-state MIL sampling. The returned log is the tail excerpt (two Z0-STRESS-HB
+      lines plus the summary and verdict lines), so the duration_s=600/inject=none header and the
+      no->15 s-silence rule rest on the operator report and on the fact that no injection build and
+      no stalled counter could reach this PASS state; the intermediate heartbeats and the tinySPL
+      banner were not returned, so on-board payload size and build id were not re-confirmed for
+      this run and image identity is operator context rather than hash proof. One window is not a
+      repeatability claim, loadable_image stays false, and nothing here validates default SRAM,
+      timer accuracy, PSRAM/DMA coherency, clock/reset/pinctrl, GPIO, CAN, display, GE/MPP or
+      storage.
+    required_evidence: The complete 600 s serial log (header plus every 5 s heartbeat) if this
+      window needs to be upgraded from excerpt-plus-derivation to fully archived evidence.
 local_observation:
   classification: observed
   value: The earlier out/firmware/bootloader path is not the active output layout. Product images and
