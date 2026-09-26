@@ -47,29 +47,15 @@ struct tick_regs {
 	unsigned long mip;
 	unsigned long mie;
 	unsigned long mcause;
-	unsigned long mintthresh;
 	int irq_enabled;
 	uint8_t clic_ip;
 	uint8_t clic_ie;
 	uint32_t clic_mth;
 };
 
-/* CSR mintthresh number (0x347) as in drivers/interrupt_controller/intc_clic.h;
- * read raw: the toolchain knows only standard CSR names.
- */
-#if defined(CONFIG_SOC_SERIES_D13X)
-static unsigned long read_mintthresh(void)
-{
-	unsigned long value = 0;
-
-	__asm__ volatile("csrr %0, 0x347" : "=r"(value));
-	return value;
-}
-#endif
-
 static struct tick_regs tick_regs_get(void)
 {
-	struct tick_regs regs = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	struct tick_regs regs = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 #if defined(CONFIG_SOC_SERIES_D13X)
 	volatile uint32_t *mtime =
@@ -98,7 +84,6 @@ static struct tick_regs tick_regs_get(void)
 	regs.mip = csr_read(mip);
 	regs.mie = csr_read(mie);
 	regs.mcause = csr_read(mcause);
-	regs.mintthresh = read_mintthresh();
 	regs.irq_enabled = irq_is_enabled(timer_irq);
 	regs.clic_ip = sys_read8(clic_ip);
 	regs.clic_ie = sys_read8(clic_ip + 1U);
@@ -263,12 +248,12 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 	printk("KERNEL-TICKDBG schema=1 armed_mtime=%llu armed_cmp=%llu "
 	       "exit_mtime=%llu exit_cmp=%llu exit_mip=%08lx exit_mie=%08lx "
 	       "exit_irqen=%d exit_clic_ip=%u exit_clic_ie=%u exit_clic_mth=%08x "
-	       "exit_mcause=%08lx exit_mintthresh=%08lx\n",
+	       "exit_mcause=%08lx\n",
 	       (unsigned long long)armed.mtime, (unsigned long long)armed.mtimecmp,
 	       (unsigned long long)at_exit.mtime, (unsigned long long)at_exit.mtimecmp,
 	       at_exit.mip, at_exit.mie, at_exit.irq_enabled,
 	       at_exit.clic_ip, at_exit.clic_ie, at_exit.clic_mth,
-	       at_exit.mcause, at_exit.mintthresh);
+	       at_exit.mcause);
 	zassert_true(count >= 20, "no timer-ISR expiry observed while spinning");
 }
 

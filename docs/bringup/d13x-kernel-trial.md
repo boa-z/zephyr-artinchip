@@ -294,3 +294,31 @@ C:/aic-z0-kernel-window-v7（干净树），文件 37672 字节，RAM 50720/6553
 特别保留 KERNEL-SPINPROBE mode=switch 行与扩展的 KERNEL-TICKDBG 行
 （含 exit_mcause/exit_mintthresh）。
 第六轮 hardware_validation=pending。
+
+## 第六轮实板结果：探针 CSR 触发异常，双阈值假设被证伪
+
+用户回传日志对应第六轮镜像（Zephyr build 839728050444）。
+test_timer_isr_delivery 在打印任何诊断行之前触发 CPU 异常，
+套件停机；后续用例均未运行。原始日志见
+artifacts/z0-kernel-r6-board-result/board-log.txt，摘要见同目录
+user-result.json。板子需要复位并烧回原版镜像。
+
+- `mcause: 2, Illegal instruction`，`mtval: 347029f3`，mepc=0x400010dc，
+  当前线程 test_timer_isr_delivery。a3/a5 分别为 mtime/mtimecmp 的
+  MMIO 地址，确认异常发生在探针采样上下文。
+- mtval 译码：CSRRS，rd=x19，rs1=x0，CSR=0x347，SYSTEM 操作码——
+  对 CSR mintthresh 的纯读。固件中唯一的 0x347 访问即新增探针
+  （驱动只用 MMIO MTH），故 fault 点就是该探针。
+
+分析结论：该 E907 上 CSR mintthresh（0x347）不可读，纯读即
+Illegal instruction。阈值路径只有 MMIO MTH（读数恒 0），双阈值
+门控假设被证伪；同时印证了 legacy-MMIO CLIC 版图方向（该核不走
+CSR 间接访问）。标准 CSR（mip/mie/mcause/mstatus）与 MMIO 读数
+在前五轮均正常，仅 0x347 fault。
+
+## 第七轮诊断：去掉 fault 探针，保留切换测试（待实板）
+
+- 删除 mintthresh 裸 CSR 读及对应字段/打印；保留 mcause 与其余
+  采样。用例清单保持 8 项不变。
+- test_timer_spin_switch（同优先级对等切换）上轮未及运行，仍是
+  待验证项：通过则指向切换路径，不通过则剩余差异为阻塞/wfi。
