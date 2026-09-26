@@ -596,3 +596,42 @@ save/restore 路径写内存 trace ring buffer 定位具体 frame/mcause。
 冻结确认：timer frequency、mtimecmp 算法、等待预算、线程优先级、
 WFI 行为、CLICCFG.nlbits=0、SHV、定时器配置、用例清单全部未变。
 第十二轮 hardware_validation=pending。
+
+
+## 第十二轮实板结果：9/9 PASS，MIL 闩锁解除
+
+用户回传日志对应第十二轮镜像（39352 字节 payload，build
+839728050444）。套件约 0.50 秒内 9/9 通过，PROJECT EXECUTION
+SUCCESSFUL；无挂起、无 fault。原始日志见
+artifacts/z0-kernel-r12-board-result/board-log.txt，摘要见同目录
+user-result.json。
+
+首要验收（两项）均成立：
+- preflight after MIL=00（KERNEL-CSR after_mil=00，after_mintstatus
+  =00000000）；
+- timer-test pre MIL=00（KERNEL-TICKDBG pre_mil=00）。
+
+随后目标五项全部 PASS：timer_isr_delivery（count=20、reason=isr）、
+timer_preemption（woke=1）、spin_switch、spin_wfi_single
+（woke=1 count=1 cmp_changed=1）、spin_yield，均为 reason=isr 提前
+退出（101 ticks），不再耗尽 1000-tick 预算。
+
+关键机制证据：
+- ISR 确实运行：exit_cmp=2120000 与 armed_cmp=1720000 不同（ISR
+  重编了比较器），exit_clic_ip=0（pending 已被消费），
+  exit_mcause=88000007 为定时器残留。
+- interrupt 入口修正分支生效：interrupt 入口 trap 返回 ecall 保存的
+  线程帧时强制 interrupt=1（exit_mcause=88000007），使最终 MRET
+  从 MPIL=0 恢复 MIL=0。
+- exception 入口修正分支生效：preflight/preemption 的
+  after_mcause=08000007 表明一次 ecall 出口把中断残留 88000007 的
+  interrupt 位清除后返回，与模型一致。
+- MPIL 按修正后的 bits[23:16] 解读：ecall 残留与定时器残留均为 0x00，
+  此前 08/88 为最高字节误读。
+- 全程 MINTSTATUS=00000000，MIL 未再回到 FF；timer_ctrl 尾字节
+  IP=0（与此前故障态 IP=1 对照）。
+
+范围声明：本轮为单次实板运行；默认 SRAM、重复冷启动、长时间
+稳定性、FPU 实板矩阵仍按原计划另行验收（见
+d13x-z0-validation.md），标准候选 loadable_image=false 不变。
+恢复镜像流程照旧，建议操作者烧回原版并确认。
