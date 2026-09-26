@@ -77,10 +77,12 @@ static unsigned long read_mintstatus(void)
  * in-repo; raw values are printed alongside so any layout stays
  * re-derivable offline.
  */
+#if defined(CONFIG_SOC_SERIES_D13X)
 static unsigned long mil_of(unsigned long mintstatus)
 {
 	return (mintstatus >> 24) & 0xFFU;
 }
+#endif
 
 static unsigned long mpil_of(unsigned long mcause)
 {
