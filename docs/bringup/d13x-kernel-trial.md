@@ -498,3 +498,79 @@ RAM 52352/65536；打包器按第十一轮 ELF/BIN 固定哈希验证（提交 6
 与 KERNEL-TICKDBG 行的 pre_/exit_mintstatus/mil/mpil。
 若 preflight 前即停机（0x346 fault），保存日志、复位烧回，该结局
 本身即 MIL 通路不存在的答案。第十一轮 hardware_validation=pending。
+
+## 第十轮实板结果：线路与驱动完全一致，静态侧收敛完毕
+
+（补记：本段为第十轮失败证据归档。）用户回传日志对应第十轮镜像
+（38560 字节 payload）。9 项中 4 项通过，5 项复现失败签名。
+原始日志见 artifacts/z0-kernel-r10-board-result/board-log.txt，摘要见
+同目录 user-result.json。恢复待确认。
+
+- timer_ctrl=1fc00101：小端字节为 IP=0x01、IE=0x01、ATTR=0xC0、
+  CTRL=0x1F。ATTR 译为 mode=3、shv=0、trg=0，与驱动写入完全一致；
+  CTRL=0x1F 与驱动公式（pri=0、nlbits=0、intctlbits=3）计算值一致。
+- clic_info=00600090（与 owner 上报一致，numint=144 活体断言通过），
+  clic_cfg=00000001（nlbits=0 如驱动所写，保留位 bit0 为复位值 1）。
+- mtvec=40000383（_isr_wrapper 加 CLIC 向量模式位），
+  medeleg=mideleg=0（无委托）。
+- 驱动假设与线路实际值全部一致，无失配；静态配置侧收敛完毕。
+
+## 第十一轮实板结果：MIL=0xFF 落定，走 ISR 路径分析分支
+
+用户回传日志对应第十一轮镜像（39288 字节 payload）。9 项中 4 项
+通过，5 项失败；preflight 通过。原始日志见
+artifacts/z0-kernel-r11-board-result/board-log.txt，摘要见同目录
+user-result.json。恢复待确认。
+
+- MINTSTATUS CSR 可读（无 fault）：preflight 前后 00000000；
+  isr_delivery 的 arm 前与失败后均为 ff000000；
+  preemption 前后均为 ff000000。
+- MIL（板级规则顶字节）：preflight 00/00；失败点一律 ff。
+  MPIL（顶字节）：ecall 残留 08，preflight 定时器 trap 后 88。
+- 按绑定决策树：失败时 MIL 非零阻塞 → 第十二轮只分析 Zephyr CLIC
+  ISR save/restore/MRET 路径（本段即该分析，不改任何代码）。
+
+## 第十二轮分析：CLIC ISR save/restore/MRET 路径（只读分析）
+
+对象：上游 pin 839728050444 的 arch/riscv/core/isr.S（_isr_wrapper）、
+switch.S、thread.c，以及第十一轮交付镜像自身的 ELF。
+
+1. 离线 linkage 审计（artifacts/z0-kernel-r11-delivery/zephyr.elf，
+   与板上镜像同哈希）：_isr_wrapper=0x40000380，板上 mtvec 读数
+   0x40000383 与之吻合（CLIC 向量系统模式）；vector[7]=0x40000380；
+   _sw_isr_table[7]={arg 0, isr 0x40004b3c=timer_isr}。分发链完整：
+   IRQ7 trap 必达 timer_isr（改写比较器、announce、计数）。
+   既然 count=0 且比较器不动，结论是无 trap 进入，与分发无关。
+
+2. trap 入口保存：调用者寄存器组、s0/_current_cpu、mcause（仅
+   CLIC_SUPPORT_INTERRUPT_LEVEL）、mepc、mstatus；FPU/exception_depth
+   记账。判中断看 mcause 最高位；CLIC 通用路径取 mcause 低 12 位为
+   IRQ 号，经空操作的 __soc_handle_irq 查 _sw_isr_table。
+   本移植未启用 RISCV_SOC_HAS_CUSTOM_IRQ_HANDLING，故上游自带的
+   mnxti 认领循环（__soc_handle_all_irqs）从未链接执行。
+
+3. trap 出口恢复：mepc、mstatus、mcause（CLIC）原值写回，s0 与调用者
+   寄存器组恢复，mret（标准语义：MIE=MPIE、MPIE=1、特权级回 MPP）。
+   全路径无任何对 mintstatus、mnxti、mth、mie、mip、CLIC 寄存器的写；
+   switch.S 无 CSR 写；线程初生 ESF 的 mcause=0 从不流入 CSR（下次
+   trap 入口即被实时值覆盖）。
+
+4. 候选机制与观测的相容性：
+   (a) mcause 回写污染：回写值（ecall 残留 0x0800000b、timer
+   0x88000007）在 preflight 同样回写而 MIL 保持 0，故回写本身不闩锁；
+   需第二因素，未见。
+   (b) mnxti 认领/完成握手缺失：若每 trap 需认领，则首 trap 后即应失灵，
+   与 preflight→owned→sem→timeout 连续成功矛盾；排除单调累积版本。
+   (c) wfi/等待态门控：第九轮已证伪（IP=1 下穿过）。
+   (d) 重挂载解冻：第八轮切换路径经 1-tick timeslice 不断重挂载仍零
+   到期，已死。
+   (e) 闩锁窗口锁定在（test_timeout 唤醒，isr_delivery arm 前采样）
+   之间；该窗口无 trap、无 timer 编程，闩锁触发源在软件可见状态中
+   无对应项——指向 E907 核内电平跟踪状态，需 TRM/原厂澄清。
+   mcause 侧（MPIL 顶字节恒 0/8）与 mintstatus 侧（MIL=FF）分歧：
+   前者无高位电平，后者阻塞一切。
+
+5. 结论：Zephyr 侧 trap 路径无写 MIL 的指令；MIL=0x00→0xFF 跃迁的
+   触发在软件可见状态之外。按决策树：MIL 非零分支的本轮分析到此
+   为止，不改代码、不出新镜像；触发源需结合 E907 中断电平跟踪的
+   硬件定义继续确认。
