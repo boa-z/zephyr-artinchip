@@ -73,9 +73,12 @@ static unsigned long read_mintstatus(void)
 #endif
 
 /* Board-trial rule fields (user-supplied E907 convention: 0xFF blocks):
- * top bytes of MINTSTATUS/MCAUSE. Layout not verified against TRM
- * in-repo; raw values are printed alongside so any layout stays
- * re-derivable offline.
+ * MIL/MPIL are the top bytes of MINTSTATUS/MCAUSE is wrong: E907/CLIC
+ * MCAUSE.MPIL uses bits[23:16] (board-trial correction, corroborated by
+ * the upstream ESP32-C5 soc_irq.S 0xFF00FFFF mask). MIL stays the top
+ * byte of MINTSTATUS per the 0xFF-blocking rule. Layouts not verified
+ * against TRM in-repo; raw values are printed alongside so any layout
+ * stays re-derivable offline.
  */
 static unsigned long mil_of(unsigned long mintstatus)
 {
@@ -84,7 +87,7 @@ static unsigned long mil_of(unsigned long mintstatus)
 
 static unsigned long mpil_of(unsigned long mcause)
 {
-	return (mcause >> 24) & 0xFFU;
+	return (mcause >> 16) & 0xFFU;
 }
 
 struct tick_regs {

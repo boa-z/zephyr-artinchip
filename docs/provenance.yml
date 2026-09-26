@@ -661,6 +661,50 @@ files:
   dependencies:
   - Pinned Zephyr APIs/build system
   review_status: reviewed
+- path: soc/artinchip/d13x/soc_context.h
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; mcause-only trap context, no SDK runtime.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: soc/artinchip/d13x/soc_offsets.h
+  kind: new
+  license: Apache-2.0
+  license_basis: Original project code/configuration; repository LICENSE. Human ownership/DCO review remains
+    pending.
+  rights_holders:
+  - Project contributors
+  changes: New implementation; offset macro for the trap context above.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+- path: soc/artinchip/d13x/soc_irq.S
+  kind: derived
+  license: Apache-2.0
+  license_basis: Per-file SPDX Apache-2.0 in cited sources; original notices preserved; human legal/DCO
+    review pending.
+  rights_holders:
+  - Espressif Systems (Shanghai) Co., Ltd
+  - Project contributors
+  changes: Interrupt/exception mcause fixup modeled on the cited ESP32-C5 routine.
+    E907 adaptations are mcause-only operation without mintthresh CSR, since the
+    threshold is MMIO-only and CSR 0x347 traps. The fixed value is deposited
+    into the arch ESF mcause slot because D13x selects
+    CLIC_SUPPORT_INTERRUPT_LEVEL whose generic restore runs after the SoC
+    restore. Timer and IRQ dispatch stay on the generic path.
+  dependencies:
+  - Pinned Zephyr APIs/build system
+  review_status: reviewed
+  sources:
+  - project: zephyrproject-rtos/zephyr
+    revision: 839728050444f90d06870b5fc9bbbda106d91459
+    path: soc/espressif/esp32c5/soc_irq.S
+    sha256: 0f9cd94cac71f6a872c7f2e85c311467ab4ea803a164c4a4d0f90e9c323570a1
 - path: soc/artinchip/d13x/Kconfig.defconfig
   kind: new
   license: Apache-2.0
