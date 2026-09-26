@@ -77,12 +77,10 @@ static unsigned long read_mintstatus(void)
  * in-repo; raw values are printed alongside so any layout stays
  * re-derivable offline.
  */
-#if defined(CONFIG_SOC_SERIES_D13X)
 static unsigned long mil_of(unsigned long mintstatus)
 {
 	return (mintstatus >> 24) & 0xFFU;
 }
-#endif
 
 static unsigned long mpil_of(unsigned long mcause)
 {
@@ -202,10 +200,12 @@ static bool wait_for_worker(void)
 #if defined(CONFIG_SOC_SERIES_D13X)
 	printk("KERNEL-CSR before_mstatus=%08x after_mstatus=%08x "
 	       "before_mcause=%08x after_mcause=%08x "
-	       "before_mil=%08lx after_mil=%08lx "
+	       "before_mintstatus=%08lx after_mintstatus=%08lx "
+	       "before_mil=%02lx after_mil=%02lx "
 	       "before_mpil=%02lx after_mpil=%02lx\n",
 	       before.mstatus, after.mstatus, before.mcause, after.mcause,
 	       before.mil, after.mil,
+	       mil_of(before.mil), mil_of(after.mil),
 	       mpil_of(before.mcause), mpil_of(after.mcause));
 #endif
 	return woke;
@@ -319,16 +319,17 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 	       "exit_irqen=%d exit_clic_ip=%u exit_clic_ie=%u exit_clic_mth=%08x "
 	       "exit_mcause=%08lx exit_mtvec=%08lx exit_medeleg=%08lx "
 	       "exit_mideleg=%08lx exit_clic_info=%08x exit_clic_cfg=%08x "
-	       "exit_timer_ctrl=%08x pre_mil=%08lx pre_mpil=%02lx "
-	       "exit_mil=%08lx exit_mpil=%02lx\n",
+	       "exit_timer_ctrl=%08x pre_mintstatus=%08lx pre_mil=%02lx pre_mpil=%02lx "
+	       "exit_mintstatus=%08lx exit_mil=%02lx exit_mpil=%02lx\n",
 	       (unsigned long long)armed.mtime, (unsigned long long)armed.mtimecmp,
 	       (unsigned long long)at_exit.mtime, (unsigned long long)at_exit.mtimecmp,
 	       at_exit.mip, at_exit.mie, at_exit.irq_enabled,
 	       at_exit.clic_ip, at_exit.clic_ie, at_exit.clic_mth,
 	       at_exit.mcause, at_exit.mtvec, at_exit.medeleg,
 	       at_exit.mideleg, at_exit.clic_info, at_exit.clic_cfg,
-	       at_exit.timer_ctrl, pre_arm.mil, mpil_of(pre_arm.mcause),
-	       at_exit.mil, mpil_of(at_exit.mcause));
+	       at_exit.timer_ctrl, pre_arm.mil, mil_of(pre_arm.mil),
+	       mpil_of(pre_arm.mcause),
+	       at_exit.mil, mil_of(at_exit.mil), mpil_of(at_exit.mcause));
 #if defined(CONFIG_SOC_SERIES_D13X)
 	/* Live validation of the 144-slot premise behind the diagnostic build. */
 	zassert_equal(at_exit.clic_info & 0x1FFFU, 144U, "CLIC numint mismatch");
