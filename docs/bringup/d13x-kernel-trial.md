@@ -282,3 +282,15 @@ yield 测试只验证了“进调度器代码”，未验证切换路径，不�
   零，则存在双阈值门控嫌疑。
 - 用例清单增至 8 项（evidence.py 与主机测试同步）；QEMU 下采样
   填零、不影响判定。
+
+## 第六轮交付（待实板）
+
+产物：artifacts/z0-kernel-r6-delivery/D50T_Z0_kernel_r6_diag.img。
+SHA-256: 20b5a4d41029263702eedb21ea27094161beaa552cea36ab84d6cf57f2b3661e。
+QEMU 8/8（C:/tmp/aic-qemu-r6b）；D13x 目标构建
+C:/aic-z0-kernel-window-v7（干净树），文件 37672 字节，RAM 50720/65536；
+打包器按第六轮 ELF/BIN 固定哈希验证（提交 c6eac09），篡改负检查拒绝。
+使用同样的手动烧录、COM11/115200、30 秒观察和恢复流程；回传完整日志，
+特别保留 KERNEL-SPINPROBE mode=switch 行与扩展的 KERNEL-TICKDBG 行
+（含 exit_mcause/exit_mintthresh）。
+第六轮 hardware_validation=pending。
