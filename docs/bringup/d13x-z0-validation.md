@@ -44,9 +44,11 @@ run on that host and run 36235471896 is green on the delivered Z0 baseline head
 `fee21ae`, so that lock is now executed rather than merely declared. CI carries
 no board: it contributes nothing to the four physical gate items.
 Board-specific test configs opt into the
-candidate boot contract; the SoC rejects builds that do not explicitly accept
-that contract. Build-only scenarios must never be counted as executed test
-passes.
+candidate boot contract; at the Z0 baseline the SoC rejected builds that did not
+explicitly accept that contract. Since the Z1 platform-fundamentals work the
+acknowledgement gates image collection instead
+(`scripts/package_candidate.py`), and a plain build only warns. Build-only
+scenarios must never be counted as executed test passes.
 
 Build and collect kernel, fpu and stress separately using the same controlled
 entry point. Each candidate has its own receipt and ELF hash; the bringup ELF is

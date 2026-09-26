@@ -22,11 +22,14 @@ config ARTINCHIP_D13X_DIAGNOSTIC_144_IRQS
 	  Leave disabled for the default software candidate.
 
 config ARTINCHIP_D13X_BOOT_CONTRACT
-	bool "Build a candidate requiring the documented bootloader handoff"
+	bool "Acknowledge the documented bootloader handoff"
 	help
-	  This is a software candidate, not a verified board boot path. The loader
-	  must enter in M-mode with SRAM accessible, interrupt delivery disabled,
-	  instruction coherency established, and UART0 clock/pins configured.
+	  Acknowledgement that the loader must enter in M-mode with the linked
+	  SRAM or PSRAM region accessible, interrupt delivery disabled, instruction
+	  coherency established, and UART0 clock/pins configured. Compiling the SoC
+	  does not require it; scripts/package_candidate.py refuses to collect a
+	  build into a hardware candidate without it, so the flag marks intent to
+	  run on the board rather than the ability to build.
 	  Read docs/bringup/d13x-boot-contract.md before any hardware use.
 
 endif

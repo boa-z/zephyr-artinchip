@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Validate and collect an SRAM-only D133ECS software candidate, never a flash image."""
+"""Validate and collect an SRAM-only D133ECS software candidate, never a flash image.
+
+Collecting is where hardware intent is gated: the build must carry
+CONFIG_ARTINCHIP_D13X_BOOT_CONTRACT, which replaces the earlier compile-time
+refusal so a plain bring-up build of this SoC is no longer an error.
+"""
 import argparse
 import hashlib
 import json
