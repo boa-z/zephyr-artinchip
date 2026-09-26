@@ -23,6 +23,18 @@ files:
   dependencies:
   - tinyspl_diagnostic_references
   review_status: reviewed
+- path: scripts/package_gate_trial.py
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: 'Generalises the window trial packager over --app kernel|fpu with per-app
+    pinned ELF/BIN hashes; same FIT, address, entry and 144-slot table checks. No
+    SDK code is included.'
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
 - path: samples/handoff_probe/product-window.overlay
   kind: new
   license: Apache-2.0
@@ -807,6 +819,17 @@ files:
   dependencies:
   - Pinned Zephyr APIs/build system
   review_status: reviewed
+- path: tests/fpu/product-window.conf
+  kind: new
+  license: Apache-2.0
+  license_basis: Original implementation; repository LICENSE; human DCO pending.
+  rights_holders:
+  - Project contributors
+  changes: FPU gate profile mirroring the kernel product-window conf (boot contract
+    plus observed 144-slot CLIC capacity).
+  dependencies:
+  - tinyspl_diagnostic_references
+  review_status: reviewed
 - path: tests/fpu/src/main.c
   kind: new
   license: Apache-2.0
@@ -814,7 +837,8 @@ files:
     pending.
   rights_holders:
   - Project contributors
-  changes: New implementation; not a copied SDK runtime.
+  changes: New implementation; not a copied SDK runtime. Read-only MINTSTATUS sampling
+    was added for the Z0 stability gate; no SDK code is included.
   dependencies:
   - Pinned Zephyr APIs/build system
   review_status: reviewed

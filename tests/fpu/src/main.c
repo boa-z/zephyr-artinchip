@@ -22,6 +22,50 @@ K_SEM_DEFINE(phase_go, 0, 2);
 static uint64_t patterns[2][33] __aligned(8);
 static uint64_t observed[2][33] __aligned(8);
 
+/* Continuous thread-state MIL watch for the Z0 stability gate. Board-trial
+ * rule: in thread context MINTSTATUS.MIL (top byte) must stay 0; a 0xFF latch
+ * blocks all interrupts (the defect the round-12 mcause-only context fixup
+ * clears). Sampled silently in both the stress threads (between preemption
+ * probes) and the supervising poll loop, so the whole 120 s FPU stress is
+ * covered without perturbing peer-epoch throughput. D13x only: off-target the
+ * read is compiled out, counters stay zero and QEMU judgement is unchanged.
+ */
+static atomic_t mil_samples;
+static atomic_t mil_violations;
+static atomic_t mil_worst;
+
+#if defined(CONFIG_SOC_SERIES_D13X)
+static unsigned long fpu_read_mintstatus(void)
+{
+	unsigned long value = 0;
+
+	__asm__ volatile("csrr %0, 0x346" : "=r"(value));
+	return value;
+}
+#endif
+
+static void fpu_mil_sample(void)
+{
+#if defined(CONFIG_SOC_SERIES_D13X)
+	unsigned long mil = (fpu_read_mintstatus() >> 24) & 0xFFU;
+
+	atomic_inc(&mil_samples);
+	if (mil != 0UL) {
+		atomic_inc(&mil_violations);
+		atomic_set(&mil_worst, (atomic_val_t)mil);
+	}
+#endif
+}
+
+static void fpu_mil_report(int64_t uptime_ms)
+{
+	printk("FPU-MILHB schema=1 samples=%ld violations=%ld mil_worst=%02lx "
+	       "uptime_ms=%lld counts=%ld+%ld\n",
+	       (long)atomic_get(&mil_samples), (long)atomic_get(&mil_violations),
+	       (unsigned long)atomic_get(&mil_worst), (long long)uptime_ms,
+	       (long)atomic_get(&counts[0]), (long)atomic_get(&counts[1]));
+}
+
 void aic_fpu_yield(void)
 {
 	k_yield();
@@ -50,6 +94,7 @@ static void stress(void *arg, void *unused1, void *unused2)
 	k_sem_take(&phase_go, K_FOREVER);
 	while (atomic_get(&stop) == 0) {
 		atomic_inc(&epochs[id]);
+		fpu_mil_sample();
 		int result = aic_fpu_preempt_probe(patterns[id], observed[id],
 						  &epochs[1 - id], CONFIG_AIC_FPU_PEER_SPIN_LIMIT);
 		if (atomic_get(&stop) != 0) {
@@ -75,6 +120,10 @@ ZTEST(artinchip_fpu, test_context_registers)
 
 	printk("FPU: peer spin limit %d iterations; target deadline 120 s\n",
 	       CONFIG_AIC_FPU_PEER_SPIN_LIMIT);
+	atomic_clear(&mil_samples);
+	atomic_clear(&mil_violations);
+	atomic_clear(&mil_worst);
+	int64_t last_hb = k_uptime_get();
 
 	for (size_t thread = 0; thread < 2; ++thread) {
 		for (size_t reg = 0; reg < 32; ++reg) {
@@ -96,6 +145,11 @@ ZTEST(artinchip_fpu, test_context_registers)
 	k_sem_give(&phase_go);
 	while ((atomic_get(&counts[0]) < 5000 || atomic_get(&counts[1]) < 5000) &&
 	       atomic_get(&failures) == 0 && k_uptime_get() < deadline) {
+		fpu_mil_sample();
+		if (k_uptime_get() - last_hb >= 5000) {
+			last_hb = k_uptime_get();
+			fpu_mil_report(last_hb);
+		}
 		k_sleep(K_MSEC(10));
 	}
 	atomic_set(&stop, 1);
@@ -104,6 +158,9 @@ ZTEST(artinchip_fpu, test_context_registers)
 	}
 	printk("FPU: preemption checks %ld + %ld; voluntary checks 200\n",
 	       (long)atomic_get(&counts[0]), (long)atomic_get(&counts[1]));
+	fpu_mil_report(k_uptime_get());
+	zassert_equal(atomic_get(&mil_violations), 0,
+		      "thread-state MIL went non-zero during FPU stress");
 	zassert_equal(atomic_get(&failures), 0);
 	zassert_true(atomic_get(&counts[0]) >= 5000);
 	zassert_true(atomic_get(&counts[1]) >= 5000);

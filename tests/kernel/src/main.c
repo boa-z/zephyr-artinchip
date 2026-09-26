@@ -90,6 +90,43 @@ static unsigned long mpil_of(unsigned long mcause)
 	return (mcause >> 16) & 0xFFU;
 }
 
+/* Continuous thread-state MIL watch for the Z0 stability gate. Board-trial
+ * rule: in thread context MINTSTATUS.MIL must stay 0; a 0xFF latch blocks all
+ * interrupts (the defect the round-12 mcause-only context fixup clears). The
+ * watcher is sampled silently inside the spin/wait loops so UART stays out of
+ * the timer-sensitive window; each site prints one heartbeat summary and
+ * asserts zero violations. D13x only: off-target the CSR read is compiled out,
+ * so samples/violations stay zero and QEMU judgement is unchanged.
+ */
+struct mil_watch {
+	uint32_t samples;
+	uint32_t violations;
+	unsigned long mil_max;
+};
+
+static void mil_watch_sample(struct mil_watch *watch)
+{
+#if defined(CONFIG_SOC_SERIES_D13X)
+	unsigned long mil = mil_of(read_mintstatus());
+
+	watch->samples++;
+	if (mil > watch->mil_max) {
+		watch->mil_max = mil;
+	}
+	if (mil != 0UL) {
+		watch->violations++;
+	}
+#else
+	ARG_UNUSED(watch);
+#endif
+}
+
+static void mil_watch_report(const char *label, const struct mil_watch *watch)
+{
+	printk("KERNEL-MILHB schema=1 test=%s samples=%u violations=%u mil_max=%02lx\n",
+	       label, watch->samples, watch->violations, watch->mil_max);
+}
+
 struct tick_regs {
 	uint64_t mtime;
 	uint64_t mtimecmp;
@@ -173,12 +210,13 @@ static struct poll_snapshot poll_snapshot_get(void)
  * not require timer IRQ delivery; the iteration budget also covers a static
  * cycle counter, but cannot protect against a stalled MMIO transaction.
  */
-static bool wait_for_worker(void)
+static bool wait_for_worker(const char *label)
 {
 	struct poll_snapshot before = poll_snapshot_get();
 	uint32_t start = before.cycles;
 	const char *reason = "iterations";
 	uint32_t budget = k_ms_to_cyc_ceil32(1000);
+	struct mil_watch milw = {0};
 
 	for (uint32_t spins = 0; spins < 10000000U; spins++) {
 		if (atomic_get(&observed)) {
@@ -189,6 +227,7 @@ static bool wait_for_worker(void)
 			reason = "cycles";
 			break;
 		}
+		mil_watch_sample(&milw);
 		compiler_barrier();
 	}
 	/* Capture before printing or aborting: UART and cleanup can change timing. */
@@ -211,6 +250,8 @@ static bool wait_for_worker(void)
 	       mil_of(before.mil), mil_of(after.mil),
 	       mpil_of(before.mcause), mpil_of(after.mcause));
 #endif
+	mil_watch_report(label, &milw);
+	zassert_equal(milw.violations, 0U, "thread-state MIL went non-zero during wait");
 	return woke;
 }
 
@@ -238,7 +279,7 @@ static void *kernel_preflight(void)
 	atomic_clear(&worker_phase);
 	k_thread_create(&worker_thread, worker_stack, K_THREAD_STACK_SIZEOF(worker_stack),
 			delayed_worker, NULL, NULL, NULL, priority - 1, 0, K_NO_WAIT);
-	bool woke = wait_for_worker();
+	bool woke = wait_for_worker("preflight");
 	if (!woke) {
 		k_thread_abort(&worker_thread);
 	}
@@ -295,6 +336,7 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 	struct tick_regs pre_arm = tick_regs_get();
 	k_timer_start(&isr_probe_timer, K_MSEC(5), K_MSEC(5));
 	struct tick_regs armed = tick_regs_get();
+	struct mil_watch milw = {0};
 	for (uint32_t spins = 0; spins < 10000000U; spins++) {
 		if (atomic_get(&isr_probe_count) >= 20) {
 			reason = "isr";
@@ -304,6 +346,7 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 			reason = "cycles";
 			break;
 		}
+		mil_watch_sample(&milw);
 		compiler_barrier();
 	}
 	/* Sample before stopping: k_timer_stop() may reprogram mtimecmp. */
@@ -333,11 +376,13 @@ ZTEST(artinchip_kernel, test_timer_isr_delivery)
 	       at_exit.timer_ctrl, pre_arm.mil, mil_of(pre_arm.mil),
 	       mpil_of(pre_arm.mcause),
 	       at_exit.mil, mil_of(at_exit.mil), mpil_of(at_exit.mcause));
+	mil_watch_report("timer_isr_delivery", &milw);
 #if defined(CONFIG_SOC_SERIES_D13X)
 	/* Live validation of the 144-slot premise behind the diagnostic build. */
 	zassert_equal(at_exit.clic_info & 0x1FFFU, 144U, "CLIC numint mismatch");
 #endif
 	zassert_true(count >= 20, "no timer-ISR expiry observed while spinning");
+	zassert_equal(milw.violations, 0U, "thread-state MIL went non-zero during spin");
 }
 
 ZTEST(artinchip_kernel, test_timer_spin_yield)
@@ -355,6 +400,7 @@ ZTEST(artinchip_kernel, test_timer_spin_yield)
 
 	atomic_clear(&isr_probe_count);
 	k_timer_start(&isr_probe_timer, K_MSEC(5), K_MSEC(5));
+	struct mil_watch milw = {0};
 	for (uint32_t spins = 0; spins < 10000000U; spins++) {
 		if (atomic_get(&isr_probe_count) >= 20) {
 			reason = "isr";
@@ -367,6 +413,7 @@ ZTEST(artinchip_kernel, test_timer_spin_yield)
 		if ((spins % 1000U) == 0U) {
 			k_yield();
 		}
+		mil_watch_sample(&milw);
 		compiler_barrier();
 	}
 	k_timer_stop(&isr_probe_timer);
@@ -378,7 +425,9 @@ ZTEST(artinchip_kernel, test_timer_spin_yield)
 	       "tick_delta=%lld cycle_delta=%u\n", reason, count,
 	       k_thread_priority_get(k_current_get()),
 	       (long long)(after.ticks - before.ticks), after.cycles - before.cycles);
+	mil_watch_report("timer_spin_yield", &milw);
 	zassert_true(count >= 20, "no timer-ISR expiry observed while yielding");
+	zassert_equal(milw.violations, 0U, "thread-state MIL went non-zero while yielding");
 }
 
 /* Companion spinner at the same priority: forces real context switches
@@ -423,6 +472,7 @@ ZTEST(artinchip_kernel, test_timer_spin_switch)
 	k_thread_create(&switch_thread, switch_stack, K_THREAD_STACK_SIZEOF(switch_stack),
 			switch_spinner, NULL, NULL, NULL, priority, 0, K_NO_WAIT);
 	k_timer_start(&isr_probe_timer, K_MSEC(5), K_MSEC(5));
+	struct mil_watch milw = {0};
 	for (uint32_t spins = 0; spins < 10000000U; spins++) {
 		if (atomic_get(&isr_probe_count) >= 20) {
 			reason = "isr";
@@ -435,6 +485,7 @@ ZTEST(artinchip_kernel, test_timer_spin_switch)
 		if ((spins % 1000U) == 0U) {
 			k_yield();
 		}
+		mil_watch_sample(&milw);
 		compiler_barrier();
 	}
 	k_timer_stop(&isr_probe_timer);
@@ -447,8 +498,10 @@ ZTEST(artinchip_kernel, test_timer_spin_switch)
 	       "tick_delta=%lld cycle_delta=%u\n", reason, count,
 	       k_thread_priority_get(k_current_get()),
 	       (long long)(after.ticks - before.ticks), after.cycles - before.cycles);
+	mil_watch_report("timer_spin_switch", &milw);
 	zassert_ok(k_thread_join(&switch_thread, K_SECONDS(1)));
 	zassert_true(count >= 20, "no timer-ISR expiry observed across switches");
+	zassert_equal(milw.violations, 0U, "thread-state MIL went non-zero across switches");
 }
 
 ZTEST(artinchip_kernel, test_timer_spin_wfi_single)
@@ -474,6 +527,7 @@ ZTEST(artinchip_kernel, test_timer_spin_wfi_single)
 
 	atomic_clear(&isr_probe_count);
 	k_timer_start(&isr_probe_timer, K_MSEC(5), K_MSEC(5));
+	struct mil_watch milw = {0};
 	for (uint32_t spins = 0; spins < 10000000U; spins++) {
 		if (atomic_get(&isr_probe_count) >= 20) {
 			ip_seen = true;
@@ -488,12 +542,14 @@ ZTEST(artinchip_kernel, test_timer_spin_wfi_single)
 		if ((uint32_t)(k_cycle_get_32() - start) >= ip_budget) {
 			break;
 		}
+		mil_watch_sample(&milw);
 		compiler_barrier();
 	}
 	if (!ip_seen) {
 		k_timer_stop(&isr_probe_timer);
 		printk("KERNEL-WFIPROBE schema=1 stage=noip ip=0 priority=%d\n",
 		       k_thread_priority_get(k_current_get()));
+		mil_watch_report("timer_spin_wfi_single", &milw);
 		zassert_true(ip_seen, "CLIC pending never set; wfi not attempted");
 		return;
 	}
@@ -515,7 +571,9 @@ ZTEST(artinchip_kernel, test_timer_spin_wfi_single)
 	       (int)(post_wfi.mtimecmp != pre_wfi.mtimecmp),
 	       post_wfi.mcause, k_thread_priority_get(k_current_get()),
 	       (long long)(after.ticks - before.ticks), after.cycles - before.cycles);
+	mil_watch_report("timer_spin_wfi_single", &milw);
 	zassert_true(count >= 1, "wfi returned without timer-ISR progress");
+	zassert_equal(milw.violations, 0U, "thread-state MIL went non-zero before wfi");
 }
 
 ZTEST(artinchip_kernel, test_timer_preemption)
@@ -528,7 +586,7 @@ ZTEST(artinchip_kernel, test_timer_preemption)
 	k_thread_create(&worker_thread, worker_stack, K_THREAD_STACK_SIZEOF(worker_stack),
 			delayed_worker, NULL, NULL, NULL, priority - 1, 0, K_NO_WAIT);
 	/* No yield/sleep here: the timer must wake and preempt this thread. */
-	bool woke = wait_for_worker();
+	bool woke = wait_for_worker("timer_preemption");
 	if (!woke) {
 		k_thread_abort(&worker_thread);
 	}
